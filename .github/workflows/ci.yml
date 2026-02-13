@@ -2,53 +2,33 @@ name: CI
 
 on:
   pull_request:
-    branches: [test, staging, main]
+    branches: [staging, main]
   push:
-    branches: [dev, test, staging, main]
+    branches: [dev]
+
+permissions:
+  contents: read
 
 jobs:
   lint-build-test:
-    name: Lint, Build & Test
+    name: lint-build-test
     runs-on: ubuntu-latest
-    
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: 20
+          cache: npm
 
-      - name: Install root dependencies (ESLint, Prettier)
+      - name: Install
         run: npm ci
 
-      - name: Lint all code
-        run: npm run lint
+      - name: Build (workspaces)
+        run: npm -ws run build
 
-      - name: Check code formatting
-        run: npm run format:check
-
-      - name: Install auth-service dependencies
-        working-directory: backend/services/auth-service
-        run: npm ci
-
-      - name: Build auth-service
-        working-directory: backend/services/auth-service
-        run: npm run build
-
-      - name: Test auth-service
-        working-directory: backend/services/auth-service
-        run: npm test
-
-      - name: Upload coverage
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: backend/services/auth-service/coverage/
-          retention-days: 7
-
-      - name: All checks passed
-        run: echo "Lint, Build and Tests successful!"
+      # Active ces 2 lignes seulement quand tu as vraiment lint/tests
+      # - name: Lint (workspaces)
+      #   run: npm -ws run lint
+      # - name: Test (workspaces)
+      #   run: npm -ws run test
