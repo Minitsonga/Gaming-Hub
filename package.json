@@ -1,13 +1,20 @@
 {
   "name": "gaming-hub",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "private": true,
   "description": "Gaming platform monorepo",
+  "workspaces": [
+    "backend/gateway",
+    "backend/services/*"
+  ],
   "scripts": {
     "lint": "eslint backend/**/*.ts",
     "lint:fix": "eslint backend/**/*.ts --fix",
     "format": "prettier --write backend/**/*.ts",
     "format:check": "prettier --check backend/**/*.ts",
+    "build": "npm -ws run build",
+    "dev:auth": "npm -w backend/services/auth-service run dev",
+    "dev:gateway": "npm -w backend/gateway run dev",
     "prepare": "husky"
   },
   "devDependencies": {
