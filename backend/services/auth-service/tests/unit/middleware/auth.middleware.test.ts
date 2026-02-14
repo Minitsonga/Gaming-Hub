@@ -1,22 +1,16 @@
 import {
-  createContext,
+  createCreateContext,
   requireAuth,
   type AuthContext,
 } from '../../../src/middleware/auth.middleware';
 import { verifyToken } from '../../../src/utils/jwt.util';
-import { UserRepository } from '../../../src/repositories/user.repository';
 
 jest.mock('../../../src/utils/jwt.util');
-jest.mock('../../../src/repositories/user.repository');
 
 const verifyTokenMock = jest.mocked(verifyToken);
-
-// Un mock partagé pour findById
 const mockFindById = jest.fn();
 
-// On remplace le constructeur UserRepository pour qu’il retourne notre repo mocké
-const UserRepositoryMock = jest.mocked(UserRepository);
-UserRepositoryMock.mockImplementation(() => ({ findById: mockFindById }) as any);
+const createContext = createCreateContext({ findById: mockFindById });
 
 describe('auth.middleware', () => {
   beforeEach(() => {
