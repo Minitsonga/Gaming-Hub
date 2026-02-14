@@ -22,17 +22,13 @@ const userController = new UserController();
 
 export const resolvers = {
   Query: {
-    me: (_: unknown, __: unknown, context: AuthContext) =>
-      userController.me(context),
+    me: (_: unknown, __: unknown, context: AuthContext) => userController.me(context),
     users: () => userController.getAllUsers(),
-    user: (_: unknown, { id }: { id: string }) =>
-      userController.getUserById(id),
+    user: (_: unknown, { id }: { id: string }) => userController.getUserById(id),
   },
   Mutation: {
-    register: (_: unknown, { input }: { input: RegisterInput }) =>
-      authController.register(input),
-    login: (_: unknown, { input }: { input: LoginInput }) =>
-      authController.login(input),
+    register: (_: unknown, { input }: { input: RegisterInput }) => authController.register(input),
+    login: (_: unknown, { input }: { input: LoginInput }) => authController.login(input),
     refreshToken: (_: unknown, { input }: { input: RefreshTokenInput }) =>
       authController.refreshToken(input),
     deleteUser: (_: unknown, { id }: { id: string }, context: AuthContext) =>

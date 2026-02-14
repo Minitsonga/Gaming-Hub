@@ -41,7 +41,6 @@ async function startServer() {
 
   // Start
   app.listen(PORT, () => {
-
     console.log('Auth Service');
     console.log(`GraphQL: http://localhost:${PORT}/graphql`);
     console.log('');

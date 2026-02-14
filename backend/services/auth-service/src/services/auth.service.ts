@@ -1,14 +1,6 @@
 import { UserRepository } from '../repositories/user.repository';
-import {
-  RegisterSchema,
-  LoginSchema,
-  RefreshTokenSchema,
-} from '../utils/validators';
-import {
-  generateToken,
-  generateRefreshToken,
-  verifyRefreshToken,
-} from '../utils/jwt.util';
+import { RegisterSchema, LoginSchema, RefreshTokenSchema } from '../utils/validators';
+import { generateToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt.util';
 import { toUserResponse } from '../utils/user.utils';
 import { AppError } from '../utils/AppError';
 

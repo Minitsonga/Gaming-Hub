@@ -4,7 +4,7 @@ import { ZodError } from 'zod';
 
 export function formatError(
   _formattedError: GraphQLFormattedError,
-  error: unknown,
+  error: unknown
 ): GraphQLFormattedError {
   const graphqlError = error instanceof GraphQLError ? error : null;
   const originalError = graphqlError?.originalError;

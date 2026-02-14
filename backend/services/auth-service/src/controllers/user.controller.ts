@@ -1,8 +1,5 @@
 import { AuthService } from '../services/auth.service';
-import {
-  requireAuth,
-  type AuthContext,
-} from '../middleware/auth.middleware';
+import { requireAuth, type AuthContext } from '../middleware/auth.middleware';
 import { toUserResponse } from '../utils/user.utils';
 
 const authService = new AuthService();
