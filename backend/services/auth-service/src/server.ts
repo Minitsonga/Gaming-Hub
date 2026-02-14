@@ -35,15 +35,14 @@ async function startServer() {
   app.use('/graphql', expressMiddleware(server, { context: createContext }));
 
   // Health
-  app.get('/health', (req, res) => {
+  app.get('/auth/health', (req, res) => {
     res.json({ status: 'ok', service: 'auth-service' });
   });
 
   // Start
   app.listen(PORT, () => {
-    console.log('Auth Service');
-    console.log(`GraphQL: http://localhost:${PORT}/graphql`);
-    console.log('');
+    console.log('Auth Service is running on http://localhost:${PORT}/auth/health');
+    console.log(`GraphQL is running on http://localhost:${PORT}/graphql`);
   });
 }
 

@@ -4,21 +4,15 @@ import { AppError } from '../utils/AppError';
 
 const userRepo = new UserRepository();
 
-interface ContextParams {
-  req: { headers: { authorization?: string } };
-}
-
-export interface AuthUser {
-  id: string;
-  username: string;
-  email: string;
-}
-
 export interface AuthContext {
-  user: AuthUser | null;
+  user: {
+    id: string;
+    username: string;
+    email: string;
+  } | null;
 }
 
-export async function createContext({ req }: ContextParams) {
+export async function createContext({ req }: any): Promise<AuthContext> {
   const authHeader = req.headers.authorization || '';
   const token = authHeader.replace('Bearer ', '');
 
@@ -46,7 +40,6 @@ export async function createContext({ req }: ContextParams) {
   }
 }
 
-// Helper pour vérifier auth dans resolvers
 export function requireAuth(context: AuthContext) {
   if (!context.user) {
     throw AppError.unauthorized('Authentication required');
