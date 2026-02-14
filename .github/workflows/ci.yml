@@ -24,11 +24,11 @@ jobs:
       - name: Install
         run: npm ci
 
+      - name: Lint (root)
+        run: npm run lint
+
       - name: Build (workspaces)
         run: npm -ws run build
 
-      # Active ces 2 lignes seulement quand tu as vraiment lint/tests
-      # - name: Lint (workspaces)
-      #   run: npm -ws run lint
-      # - name: Test (workspaces)
-      #   run: npm -ws run test
+      - name: Test (workspaces)
+        run: npm -ws run test

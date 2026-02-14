@@ -1,28 +1,23 @@
 {
   "name": "gaming-hub",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "private": true,
-  "description": "Gaming platform monorepo",
   "workspaces": [
     "backend/gateway",
     "backend/services/*"
   ],
   "scripts": {
-    "lint": "eslint backend/**/*.ts",
-    "lint:fix": "eslint backend/**/*.ts --fix",
-    "format": "prettier --write backend/**/*.ts",
-    "format:check": "prettier --check backend/**/*.ts",
-    "build": "npm -ws run build",
-    "dev:auth": "npm -w backend/services/auth-service run dev",
-    "dev:gateway": "npm -w backend/gateway run dev",
-    "prepare": "husky"
+    "lint": "eslint backend --ext .ts",
+    "lint:fix": "eslint backend --ext .ts --fix",
+    "format": "prettier --write \"backend/**/*.ts\"",
+    "format:check": "prettier --check \"backend/**/*.ts\""
   },
   "devDependencies": {
-    "@typescript-eslint/eslint-plugin": "^7.0.0",
-    "@typescript-eslint/parser": "^7.0.0",
-    "eslint": "^8.56.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
     "eslint-config-prettier": "^9.1.0",
-    "prettier": "^3.2.4",
-    "husky": "^9.0.0"
+    "prettier": "^3.2.0",
+    "typescript-eslint": "^8.55.0"
   }
 }
