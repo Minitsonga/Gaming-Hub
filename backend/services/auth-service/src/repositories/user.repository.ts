@@ -1,31 +1,29 @@
 import { User, IUser } from '../models/User.model';
 
-export interface CreateUserDTO {
-  username: string;
-  email: string;
-  password: string;
-}
-
 export class UserRepository {
-  async create(data: CreateUserDTO): Promise<IUser> {
+  async create(data: { username: string; email: string; password: string }): Promise<IUser> {
     const user = new User(data);
-    return await user.save();
+    return user.save();
   }
 
   async findById(id: string): Promise<IUser | null> {
-    return await User.findById(id);
+    return User.findById(id);
   }
 
   async findByEmail(email: string): Promise<IUser | null> {
-    return await User.findOne({ email });
+    return User.findOne({ email });
   }
 
   async findByUsername(username: string): Promise<IUser | null> {
-    return await User.findOne({ username });
+    return User.findOne({ username });
   }
 
   async findAll(): Promise<IUser[]> {
-    return await User.find();
+    return User.find().select('-password -refreshToken');
+  }
+
+  async updateRefreshToken(id: string, token: string | null): Promise<void> {
+    await User.findByIdAndUpdate(id, { refreshToken: token });
   }
 
   async delete(id: string): Promise<boolean> {

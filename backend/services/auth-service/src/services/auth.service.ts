@@ -1,101 +1,89 @@
 import { UserRepository } from '../repositories/user.repository';
 import { RegisterSchema, LoginSchema, RefreshTokenSchema } from '../utils/validators';
 import { generateToken, generateRefreshToken, verifyRefreshToken } from '../utils/jwt.util';
-import { toUserResponse } from '../utils/user.utils';
+import { toUserResponse, UserResponse } from '../utils/user.utils';
 import { AppError } from '../utils/AppError';
+
+interface AuthPayload {
+  token: string;
+  refreshToken: string;
+  user: UserResponse;
+}
 
 export class AuthService {
   private userRepo = new UserRepository();
 
-  async register(input: { username: string; email: string; password: string }) {
-    // Validation
-    const validated = RegisterSchema.parse(input);
+  async register(input: unknown): Promise<AuthPayload> {
+    const data = RegisterSchema.parse(input);
+    const [existingEmail, existingUsername] = await Promise.all([
+      this.userRepo.findByEmail(data.email),
+      this.userRepo.findByUsername(data.username),
+    ]);
+    if (existingEmail) throw AppError.conflict('Email already exists');
+    if (existingUsername) throw AppError.conflict('Username already exists');
 
-    // Check existing
-    const existingEmail = await this.userRepo.findByEmail(validated.email);
-    if (existingEmail) {
-      throw AppError.conflict('Email already exists');
-    }
-
-    const existingUsername = await this.userRepo.findByUsername(validated.username);
-    if (existingUsername) {
-      throw AppError.conflict('Username already exists');
-    }
-
-    // Create user
-    const user = await this.userRepo.create(validated);
-
-    // Generate tokens
+    const user = await this.userRepo.create(data);
     const token = generateToken(user._id.toString());
     const refreshToken = generateRefreshToken(user._id.toString());
+    await this.userRepo.updateRefreshToken(user._id.toString(), refreshToken);
 
-    return {
-      token,
-      refreshToken,
-      user: toUserResponse(user),
-    };
+    return { token, refreshToken, user: toUserResponse(user) };
   }
 
-  async login(input: { email: string; password: string }) {
-    // Validation
-    const validated = LoginSchema.parse(input);
+  async login(input: unknown): Promise<AuthPayload> {
+    const data = LoginSchema.parse(input);
+    const user = await this.userRepo.findByEmail(data.email);
+    if (!user) throw AppError.unauthorized('Invalid credentials');
 
-    // Find user
-    const user = await this.userRepo.findByEmail(validated.email);
-    if (!user) {
-      throw AppError.unauthorized('Invalid credentials');
-    }
+    const isValid = await user.comparePassword(data.password);
+    if (!isValid) throw AppError.unauthorized('Invalid credentials');
 
-    // Check password
-    const isValid = await user.comparePassword(validated.password);
-    if (!isValid) {
-      throw AppError.unauthorized('Invalid credentials');
-    }
-
-    // Generate tokens
     const token = generateToken(user._id.toString());
     const refreshToken = generateRefreshToken(user._id.toString());
+    await this.userRepo.updateRefreshToken(user._id.toString(), refreshToken);
 
-    return {
-      token,
-      refreshToken,
-      user: toUserResponse(user),
-    };
+    return { token, refreshToken, user: toUserResponse(user) };
   }
 
-  async refreshToken(input: { refreshToken: string }) {
-    const validated = RefreshTokenSchema.parse(input);
-    const { userId } = verifyRefreshToken(validated.refreshToken);
+  async refreshToken(input: unknown): Promise<AuthPayload> {
+    const data = RefreshTokenSchema.parse(input);
+    const { userId } = verifyRefreshToken(data.refreshToken);
     const user = await this.userRepo.findById(userId);
-    if (!user) {
+    if (!user || user.refreshToken !== data.refreshToken)
       throw AppError.unauthorized('Invalid refresh token');
-    }
+
     const token = generateToken(user._id.toString());
-    const refreshToken = generateRefreshToken(user._id.toString());
-    return {
-      token,
-      refreshToken,
-      user: toUserResponse(user),
-    };
+    const newRefreshToken = generateRefreshToken(user._id.toString());
+    await this.userRepo.updateRefreshToken(user._id.toString(), newRefreshToken);
+
+    return { token, refreshToken: newRefreshToken, user: toUserResponse(user) };
   }
 
-  async getUserById(id: string) {
+  async logout(userId: string): Promise<boolean> {
+    await this.userRepo.updateRefreshToken(userId, null);
+    return true;
+  }
+
+  async getMe(userId: string): Promise<UserResponse> {
+    const user = await this.userRepo.findById(userId);
+    if (!user) throw AppError.notFound('User not found');
+    return toUserResponse(user);
+  }
+
+  async getUserById(id: string): Promise<UserResponse> {
     const user = await this.userRepo.findById(id);
-    if (!user) {
-      throw AppError.notFound('User not found');
-    }
-    return user;
+    if (!user) throw AppError.notFound('User not found');
+    return toUserResponse(user);
   }
 
-  async getAllUsers() {
-    return this.userRepo.findAll();
+  async getAllUsers(): Promise<UserResponse[]> {
+    const users = await this.userRepo.findAll();
+    return users.map(toUserResponse);
   }
 
-  async deleteUser(id: string) {
+  async deleteUser(id: string): Promise<boolean> {
     const deleted = await this.userRepo.delete(id);
-    if (!deleted) {
-      throw AppError.notFound('User not found');
-    }
+    if (!deleted) throw AppError.notFound('User not found');
     return true;
   }
 }

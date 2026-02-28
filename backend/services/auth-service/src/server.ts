@@ -13,35 +13,23 @@ const PORT = process.env.PORT || 4001;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/gaming-hub-auth';
 
 async function startServer() {
-  const app = express();
-
-  // Connect DB
   await connectDatabase(MONGO_URI);
-
-  // Apollo Server
   const server = new ApolloServer({
     typeDefs,
     resolvers,
     formatError,
   });
-
   await server.start();
 
-  // Middleware
+  const app = express();
   app.use(cors());
   app.use(express.json());
-
-  // GraphQL endpoint
   app.use('/graphql', expressMiddleware(server, { context: createContext }));
-
-  // Health
-  app.get('/auth/health', (req, res) => {
+  app.get('/health', (_req, res) => {
     res.json({ status: 'ok', service: 'auth-service' });
   });
 
-  // Start
   app.listen(PORT, () => {
-    console.log('Auth Service is running on http://localhost:${PORT}/auth/health');
     console.log(`GraphQL is running on http://localhost:${PORT}/graphql`);
   });
 }

@@ -3,6 +3,7 @@ export const typeDefs = `#graphql
     id: ID!
     username: String!
     email: String!
+    role: String!
     createdAt: String!
   }
 
@@ -37,6 +38,7 @@ export const typeDefs = `#graphql
     register(input: RegisterInput!): AuthPayload!
     login(input: LoginInput!): AuthPayload!
     refreshToken(input: RefreshTokenInput!): AuthPayload!
+    logout: Boolean!
     deleteUser(id: ID!): Boolean!
   }
 `;

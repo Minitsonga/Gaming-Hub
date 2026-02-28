@@ -24,10 +24,13 @@ describe('AuthService', () => {
     it('should register successfully and return tokens + user', async () => {
       mockUserRepo.findByEmail.mockResolvedValue(null);
       mockUserRepo.findByUsername.mockResolvedValue(null);
+      mockUserRepo.updateRefreshToken.mockResolvedValue(undefined);
       mockUserRepo.create.mockResolvedValue({
         _id: '123',
         username: validInput.username,
         email: validInput.email,
+        role: 'user',
+        refreshToken: null,
         password: 'hashed',
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -38,8 +41,9 @@ describe('AuthService', () => {
       expect(result).toMatchObject({
         token: expect.any(String),
         refreshToken: expect.any(String),
-        user: { username: validInput.username },
+        user: { username: validInput.username, role: 'user' },
       });
+      expect(mockUserRepo.updateRefreshToken).toHaveBeenCalled();
     });
 
     it('should throw on duplicate email or invalid input', async () => {
@@ -60,10 +64,13 @@ describe('AuthService', () => {
         _id: '123',
         username: 'testuser',
         email: validInput.email,
+        role: 'user',
+        refreshToken: null,
         createdAt: new Date(),
         updatedAt: new Date(),
         comparePassword: jest.fn().mockResolvedValue(true),
       };
+      mockUserRepo.updateRefreshToken.mockResolvedValue(undefined);
       mockUserRepo.findByEmail.mockResolvedValue(mockUser as any);
 
       const result = await authService.login(validInput);
@@ -71,8 +78,9 @@ describe('AuthService', () => {
       expect(result).toMatchObject({
         token: expect.any(String),
         refreshToken: expect.any(String),
-        user: { email: validInput.email },
+        user: { email: validInput.email, role: 'user' },
       });
+      expect(mockUserRepo.updateRefreshToken).toHaveBeenCalled();
     });
 
     it('should throw on invalid credentials or input', async () => {
@@ -89,9 +97,12 @@ describe('AuthService', () => {
         _id: '123',
         username: 'test',
         email: 't@t.com',
+        role: 'user',
+        refreshToken: generateRefreshToken('123'),
         createdAt: new Date(),
         updatedAt: new Date(),
       } as any);
+      mockUserRepo.updateRefreshToken.mockResolvedValue(undefined);
 
       const result = await authService.refreshToken({
         refreshToken: generateRefreshToken('123'),
@@ -116,13 +127,15 @@ describe('AuthService', () => {
         _id: '123',
         username: 'test',
         email: 't@t.com',
+        role: 'user',
+        refreshToken: null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
       mockUserRepo.findById.mockResolvedValue(mockUser as any);
 
       const result = await authService.getUserById('123');
-      expect(result).toEqual(mockUser);
+      expect(result).toMatchObject({ id: '123', username: 'test', role: 'user' });
 
       mockUserRepo.findById.mockResolvedValue(null);
       await expect(authService.getUserById('x')).rejects.toThrow('User not found');
@@ -136,6 +149,14 @@ describe('AuthService', () => {
 
       mockUserRepo.delete.mockResolvedValue(false);
       await expect(authService.deleteUser('x')).rejects.toThrow('User not found');
+    });
+  });
+
+  describe('logout', () => {
+    it('should clear refresh token and return true', async () => {
+      mockUserRepo.updateRefreshToken.mockResolvedValue(undefined);
+      await expect(authService.logout('123')).resolves.toBe(true);
+      expect(mockUserRepo.updateRefreshToken).toHaveBeenCalledWith('123', null);
     });
   });
 });

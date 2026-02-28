@@ -6,6 +6,7 @@ describe('user.utils', () => {
       _id: { toString: () => '507f1f77bcf86cd799439011' },
       username: 'testuser',
       email: 'test@example.com',
+      role: 'user',
       createdAt: new Date('2024-01-15T10:00:00.000Z'),
       updatedAt: new Date('2024-01-15T10:00:00.000Z'),
     } as any;
@@ -16,6 +17,7 @@ describe('user.utils', () => {
       id: '507f1f77bcf86cd799439011',
       username: 'testuser',
       email: 'test@example.com',
+      role: 'user',
       createdAt: '2024-01-15T10:00:00.000Z',
     });
   });
