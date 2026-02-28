@@ -6,4 +6,7 @@ npm run lint || exit 1
 echo "-> Checking format..."
 npm run format:check || exit 1
 
+echo "-> Running unit tests (workspaces)..."
+npm run test --workspaces || exit 1
+
 echo "Pre-commit checks passed!"
