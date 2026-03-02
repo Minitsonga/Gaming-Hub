@@ -7,9 +7,11 @@
     "backend/services/*"
   ],
   "scripts": {
+    "dev:gateway": "npm run dev --workspace=backend/gateway",
     "dev:auth": "npm run dev --workspace=backend/services/auth-service",
     "dev:catalog": "npm run dev --workspace=backend/services/catalog-service",
     "dev:roguelike": "npm run dev --workspace=backend/services/roguelike-service",
+    "dev:analytics": "npm run dev --workspace=backend/services/analytics-service",
     "lint": "eslint backend --ext .ts",
     "lint:fix": "eslint backend --ext .ts --fix",
     "format": "prettier --write \"backend/**/*.ts\"",

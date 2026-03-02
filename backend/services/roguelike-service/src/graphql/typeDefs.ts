@@ -1,4 +1,8 @@
-export const typeDefs = `#graphql
+import { gql } from 'graphql-tag';
+
+export const typeDefs = gql`
+  extend schema @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@key"])
+
   type SkillInstance {
     skillId: String!
     rarityHistory: [Int!]!
@@ -15,7 +19,7 @@ export const typeDefs = `#graphql
     totalKills: Int!
   }
 
-  type PlayerSave {
+  type PlayerSave @key(fields: "id") {
     id: ID!
     userId: String!
     gameSlug: String!

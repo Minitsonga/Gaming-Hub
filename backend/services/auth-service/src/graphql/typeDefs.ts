@@ -1,5 +1,9 @@
-export const typeDefs = `#graphql
-  type User {
+import { gql } from 'graphql-tag';
+
+export const typeDefs = gql`
+  extend schema @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@key"])
+
+  type User @key(fields: "id") {
     id: ID!
     username: String!
     email: String!
