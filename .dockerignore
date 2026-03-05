@@ -1,0 +1,28 @@
+# Dependencies (reinstalled in image)
+node_modules/
+
+# Build outputs
+dist/
+build/
+backend/**/dist/
+
+# Git
+.git/
+.gitignore
+
+# Env (injectées via compose env_file sur l’hôte, pas dans l’image)
+.env
+.env.*
+!.env.example
+
+# CI / IDE / OS
+.github/
+.vscode/
+.idea/
+.DS_Store
+*.log
+coverage/
+
+# Docs / plans (optionnel, allège le contexte)
+*.md
+!backend/README.md
