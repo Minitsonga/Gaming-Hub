@@ -11,7 +11,7 @@ import { createContext } from './middleware/auth.middleware';
 import { formatError } from './middleware/error.middleware';
 
 const PORT = process.env.PORT || 4001;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/gaming-hub-auth';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/gaming-hub';
 
 async function startServer() {
   await connectDatabase(MONGO_URI);
