@@ -1,0 +1,29 @@
+name: Build & Test
+
+on:
+  pull_request:
+    branches: [staging, main]
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: build-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build (workspaces)
+        run: npm run build --workspaces
+
+      - name: Test (workspaces)
+        run: npm run test --workspaces
