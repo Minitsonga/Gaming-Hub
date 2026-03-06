@@ -1,0 +1,119 @@
+# Gaming Hub - stack complète (Docker Desktop)
+# À la racine du repo : docker compose up --build
+# Déploiement : sur le serveur, lancer cette stack (docker compose up -d) pour démarrer tous les services.
+
+services:
+  mongodb:
+    image: mongo:7
+    container_name: gaming-hub-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - gaming-hub
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: backend/services/auth-service/Dockerfile
+    container_name: gaming-hub-auth
+    ports:
+      - "4001:4001"
+    environment:
+      NODE_ENV: production
+      PORT: 4001
+      MONGO_URI: mongodb://mongodb:27017/gaming-hub
+    env_file:
+      - backend/services/auth-service/.env
+    depends_on:
+      - mongodb
+    networks:
+      - gaming-hub
+
+  catalog-service:
+    build:
+      context: .
+      dockerfile: backend/services/catalog-service/Dockerfile
+    container_name: gaming-hub-catalog
+    ports:
+      - "4002:4002"
+    environment:
+      NODE_ENV: production
+      PORT: 4002
+      MONGO_URI: mongodb://mongodb:27017/gaming-hub
+    env_file:
+      - backend/services/catalog-service/.env
+    depends_on:
+      - mongodb
+    networks:
+      - gaming-hub
+
+  roguelike-service:
+    build:
+      context: .
+      dockerfile: backend/services/roguelike-service/Dockerfile
+    container_name: gaming-hub-roguelike
+    ports:
+      - "4003:4003"
+    environment:
+      NODE_ENV: production
+      PORT: 4003
+      MONGO_URI: mongodb://mongodb:27017/gaming-hub
+      ANALYTICS_GRAPHQL_URL: http://analytics-service:4004/graphql
+    env_file:
+      - backend/services/roguelike-service/.env
+    depends_on:
+      - mongodb
+      - analytics-service
+    networks:
+      - gaming-hub
+
+  analytics-service:
+    build:
+      context: .
+      dockerfile: backend/services/analytics-service/Dockerfile
+    container_name: gaming-hub-analytics
+    ports:
+      - "4004:4004"
+    environment:
+      NODE_ENV: production
+      PORT: 4004
+      MONGO_URI: mongodb://mongodb:27017/gaming-hub
+    env_file:
+      - backend/services/analytics-service/.env
+    depends_on:
+      - mongodb
+    networks:
+      - gaming-hub
+
+  gateway:
+    build:
+      context: .
+      dockerfile: backend/gateway/Dockerfile
+    container_name: gaming-hub-gateway
+    ports:
+      - "4000:4000"
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      AUTH_SUBGRAPH_URL: http://auth-service:4001/graphql
+      CATALOG_SUBGRAPH_URL: http://catalog-service:4002/graphql
+      ROGUELIKE_SUBGRAPH_URL: http://roguelike-service:4003/graphql
+      ANALYTICS_SUBGRAPH_URL: http://analytics-service:4004/graphql
+    env_file:
+      - backend/gateway/.env
+    depends_on:
+      - auth-service
+      - catalog-service
+      - roguelike-service
+      - analytics-service
+    networks:
+      - gaming-hub
+
+volumes:
+  mongodb_data:
+
+networks:
+  gaming-hub:
+    driver: bridge

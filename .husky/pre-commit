@@ -1,0 +1,9 @@
+echo "Running pre-commit checks..."
+
+echo "-> Linting..."
+npm run lint || exit 1
+
+echo "-> Checking format..."
+npm run format:check || exit 1
+
+echo "Pre-commit checks passed!"

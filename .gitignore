@@ -1,35 +1,26 @@
 # Dependencies
 node_modules/
-package-lock.json
 
 # Build
 dist/
 build/
-*.log
 
 # Environment
 .env
 .env.local
-.env.*.local
 *.env
+!*.env.example
 
-# Coverage
-coverage/
-.nyc_output/
+# Logs
+*.log
 
 # OS
 .DS_Store
 Thumbs.db
-*.swp
 
 # IDE
 .vscode/
 .idea/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
 
-# Uploads
-uploads/
-*.tmp
+# Coverage
+coverage/
