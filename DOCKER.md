@@ -47,3 +47,40 @@ Sur la machine qui héberge tout :
 3. Un seul serveur exécute ainsi tous les services (gateway + 4 subgraphs + MongoDB).
 
 Pour exposer uniquement le gateway en public, n’ouvrir que le port 4000 en entrée et laisser les autres ports en interne au réseau Docker.
+
+---
+
+## Versionner et publier les images (Docker Hub)
+
+### En local : bumper la version d’un service
+
+À la racine du repo :
+
+```bash
+npm run release <service> <patch|minor|major>
+```
+
+Exemples : `npm run release auth-service patch`, `npm run release gateway minor`.
+
+Le script met à jour le `package.json` du service et crée un tag Git (ex. `auth-service/v1.0.1`). Il affiche ensuite le rappel :
+
+**Prochaine étape : git push origin dev --follow-tags**
+
+Services possibles : `gateway`, `auth-service`, `catalog-service`, `roguelike-service`, `analytics-service`.
+
+### Publication automatique sur Docker Hub (CI)
+
+Quand tu pousses un tag du type `auth-service/v1.0.1`, la CI (workflow **Docker Publish**) build et push l’image sur Docker Hub.
+
+**Secrets à configurer dans GitHub** (Settings → Secrets and variables → Actions) :
+
+- `DOCKERHUB_USERNAME` : ton identifiant Docker Hub
+- `DOCKERHUB_TOKEN` : token d’accès (Docker Hub → Account Settings → Security → New Access Token)
+
+Les images seront nommées : `$DOCKERHUB_USERNAME/gaming-hub-auth-service:1.0.1`, etc.
+
+### CI staging (PR dev → staging) — valider puis publier les versions
+
+1. **Avant la PR** : tu crées les versions avec `npm run release <service> patch` (ou minor/major), puis tu pushes : `git push origin dev --follow-tags`.
+2. **Sur la PR** : la CI exécute uniquement **lint + tests** (aucun push). Si tout est vert, la PR est validée.
+3. **Au merge sur staging** : la CI build et push toutes les images sur Docker Hub avec les **versions lues dans les `package.json`** (`:1.0.1`, `:latest`, `:sha-xxx`). C’est la CI qui « valide » et publie les versions.

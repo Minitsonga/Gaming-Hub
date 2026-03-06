@@ -1,8 +1,14 @@
+# Lint et format sur push vers dev
+
 name: Lint & Format
 
 on:
   push:
     branches: [dev]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -12,9 +18,11 @@ jobs:
     name: lint-format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
@@ -25,5 +33,5 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Format check (Prettier)
+      - name: Format check
         run: npm run format:check

@@ -12,6 +12,7 @@
     "dev:catalog": "npm run dev --workspace=backend/services/catalog-service",
     "dev:roguelike": "npm run dev --workspace=backend/services/roguelike-service",
     "dev:analytics": "npm run dev --workspace=backend/services/analytics-service",
+    "release": "node scripts/release.js",
     "lint": "eslint backend",
     "lint:fix": "eslint backend --fix",
     "format": "prettier --write \"backend/**/*.ts\"",
