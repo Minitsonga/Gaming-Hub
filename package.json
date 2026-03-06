@@ -16,7 +16,12 @@
     "lint": "eslint backend",
     "lint:fix": "eslint backend --fix",
     "format": "prettier --write \"backend/**/*.ts\"",
-    "format:check": "prettier --check \"backend/**/*.ts\""
+    "format:check": "prettier --check \"backend/**/*.ts\"",
+    "load-test": "k6 run load-tests/health.js",
+    "load-test:health": "k6 run load-tests/health.js",
+    "load-test:graphql": "k6 run load-tests/graphql.js",
+    "load-test:load": "k6 run load-tests/load.js",
+    "load-test:stress": "k6 run load-tests/stress.js"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.0.0",
