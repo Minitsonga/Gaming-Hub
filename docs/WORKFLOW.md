@@ -64,6 +64,7 @@ Quand tu veux marquer une nouvelle version (patch / minor / major) pour un servi
 
 - Crée une **Pull Request** de `dev` vers `staging`.
 - La CI **Staging** se déclenche et exécute :
+  - Security audit (`npm audit --audit-level=high`)
   - Lint
   - Format check
   - Tests (`npm run test --workspaces --if-present`)

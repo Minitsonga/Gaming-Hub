@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
-import cors from 'cors';
+import cors, { type CorsOptions } from 'cors';
+import helmet from 'helmet';
 import { ApolloServer } from '@apollo/server';
 import { buildSubgraphSchema } from '@apollo/subgraph';
 import { expressMiddleware } from '@as-integrations/express5';
@@ -12,6 +13,22 @@ import { formatError } from './middleware/error.middleware';
 
 const PORT = process.env.PORT || 4001;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/gaming-hub';
+const CORS_ORIGINS = (process.env.CORS_ORIGINS ?? '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const corsOptions: CorsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (process.env.NODE_ENV !== 'production' && CORS_ORIGINS.length === 0) {
+      return callback(null, true);
+    }
+    if (CORS_ORIGINS.includes(origin)) return callback(null, true);
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+};
 
 async function startServer() {
   await connectDatabase(MONGO_URI);
@@ -23,7 +40,8 @@ async function startServer() {
   await server.start();
 
   const app = express();
-  app.use(cors());
+  app.use(helmet());
+  app.use(cors(corsOptions));
   app.use(express.json());
   app.use('/graphql', expressMiddleware(server, { context: createContext }));
   app.get('/health', (_req, res) => {

@@ -9,8 +9,8 @@
     "test": "jest"
   },
   "dependencies": {
-    "@apollo/server": "^5.4.0",
-    "@apollo/subgraph": "^2.13.1",
+    "@apollo/server": "^5.5.0",
+    "@apollo/subgraph": "^2.13.3",
     "@as-integrations/express5": "^1.1.2",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
