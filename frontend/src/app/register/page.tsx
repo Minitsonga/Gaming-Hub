@@ -99,7 +99,7 @@ export default function RegisterPage() {
           <input
             required
             minLength={3}
-            className="rounded border px-3 py-2"
+            className="rounded border px-3 py-2 focus-visible:outline-2 focus-visible:outline-offset-2"
             value={username}
             onChange={(event) => setUsername(event.target.value)}
           />
@@ -110,7 +110,7 @@ export default function RegisterPage() {
           <input
             required
             type="email"
-            className="rounded border px-3 py-2"
+            className="rounded border px-3 py-2 focus-visible:outline-2 focus-visible:outline-offset-2"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
           />
@@ -122,7 +122,7 @@ export default function RegisterPage() {
             required
             type="password"
             minLength={6}
-            className="rounded border px-3 py-2"
+            className="rounded border px-3 py-2 focus-visible:outline-2 focus-visible:outline-offset-2"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
           />
@@ -137,8 +137,16 @@ export default function RegisterPage() {
         </button>
       </form>
 
-      {error ? <p className="mt-4 text-sm text-red-600">{error}</p> : null}
-      {success ? <p className="mt-4 text-sm text-green-600">{success}</p> : null}
+      {error ? (
+        <p className="mt-4 text-sm text-red-600" role="alert" aria-live="polite">
+          {error}
+        </p>
+      ) : null}
+      {success ? (
+        <p className="mt-4 text-sm text-green-600" role="status" aria-live="polite">
+          {success}
+        </p>
+      ) : null}
 
       <p className="mt-6 text-sm">
         Already registered?{" "}
