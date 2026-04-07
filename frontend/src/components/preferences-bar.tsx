@@ -3,7 +3,7 @@
 import { useAppPreferences } from "./app-preferences";
 
 export function PreferencesBar() {
-  const { language, theme, setLanguage, setTheme, t } = useAppPreferences();
+  const { language, theme, setLanguage, setTheme, translate } = useAppPreferences();
 
   return (
     <div className="flex w-full items-center justify-end gap-2 border-b p-3">
@@ -11,7 +11,7 @@ export function PreferencesBar() {
         className="rounded border px-2 py-1 dark:bg-zinc-900"
         value={language}
         onChange={(event) => setLanguage(event.target.value as "en" | "fr")}
-        aria-label={t("Language", "Langue")}
+        aria-label={translate("Language", "Langue")}
       >
         <option value="en">EN</option>
         <option value="fr">FR</option>
@@ -23,7 +23,9 @@ export function PreferencesBar() {
         onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
         aria-label={t("Toggle theme", "Changer le theme")}
       >
-        {theme === "dark" ? t("Light", "Clair") : t("Dark", "Sombre")}
+        {theme === "dark"
+          ? translate("Light", "Clair")
+          : translate("Dark", "Sombre")}
       </button>
     </div>
   );

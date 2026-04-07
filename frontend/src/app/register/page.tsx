@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { useState, type FormEventHandler } from "react";
 import Link from "next/link";
 import { FeedbackMessage } from "../../components/feedback-message";
 import { useAppPreferences } from "../../components/app-preferences";
@@ -140,7 +140,7 @@ export default function RegisterPage() {
     return t("Unable to create account with provided data.", "Impossible de creer le compte avec les donnees fournies.");
   }
 
-  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+  const onSubmit: FormEventHandler<HTMLFormElement> = async (event) => {
     event.preventDefault();
     setLoading(true);
     setSuccess(null);
@@ -199,7 +199,7 @@ export default function RegisterPage() {
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center p-6">

@@ -10,7 +10,7 @@ type PreferencesContextValue = {
   theme: Theme;
   setLanguage: (language: Language) => void;
   setTheme: (theme: Theme) => void;
-  t: (en: string, fr: string) => string;
+  translate: (englishText: string, frenchText: string) => string;
 };
 
 const PreferencesContext = createContext<PreferencesContextValue | null>(null);
@@ -42,7 +42,7 @@ export function AppPreferencesProvider({ children }: { children: ReactNode }) {
       theme,
       setLanguage,
       setTheme,
-      t: (en, fr) => (language === "fr" ? fr : en),
+      translate: (englishText, frenchText) => (language === "fr" ? frenchText : englishText),
     }),
     [language, theme]
   );
