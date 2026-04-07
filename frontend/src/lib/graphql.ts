@@ -3,11 +3,15 @@ const GRAPHQL_ENDPOINT =
 
 export async function graphqlRequest<T>(
   query: string,
-  variables?: Record<string, unknown>
+  variables?: Record<string, unknown>,
+  options?: { token?: string }
 ): Promise<T> {
   const response = await fetch(GRAPHQL_ENDPOINT, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(options?.token ? { Authorization: `Bearer ${options.token}` } : {}),
+    },
     body: JSON.stringify({ query, variables }),
     cache: "no-store",
   });

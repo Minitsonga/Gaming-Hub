@@ -19,6 +19,14 @@ type GamesQuery = {
   games: Game[];
 };
 
+type CreateGameMutation = {
+  createGame: Game;
+};
+
+type UpdateGameMutation = {
+  updateGame: Game;
+};
+
 const GAMES_QUERY = `
   query Games($status: String, $tag: String) {
     games(status: $status, tag: $tag) {
@@ -34,15 +42,55 @@ const GAMES_QUERY = `
   }
 `;
 
+const CREATE_GAME_MUTATION = `
+  mutation CreateGame($input: CreateGameInput!) {
+    createGame(input: $input) {
+      id
+      slug
+      title
+      description
+      thumbnailUrl
+      technology
+      status
+      tags
+    }
+  }
+`;
+
+const UPDATE_GAME_MUTATION = `
+  mutation UpdateGame($id: ID!, $input: UpdateGameInput!) {
+    updateGame(id: $id, input: $input) {
+      id
+      title
+      description
+      status
+      tags
+      technology
+      slug
+      thumbnailUrl
+    }
+  }
+`;
+
 const PAGE_SIZE = 6;
 
 export default function GamesPage() {
   const [games, setGames] = useState<Game[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [adminMessage, setAdminMessage] = useState<string | null>(null);
+  const [adminError, setAdminError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [sort, setSort] = useState<"title" | "technology">("title");
   const [page, setPage] = useState(1);
+  const [createTitle, setCreateTitle] = useState("");
+  const [createSlug, setCreateSlug] = useState("");
+  const [createDescription, setCreateDescription] = useState("");
+  const [createTechnology, setCreateTechnology] = useState("Unity");
+  const [updateId, setUpdateId] = useState("");
+  const [updateTitle, setUpdateTitle] = useState("");
+  const [updateDescription, setUpdateDescription] = useState("");
+  const [updateStatus, setUpdateStatus] = useState("published");
 
   useEffect(() => {
     let active = true;
@@ -57,6 +105,65 @@ export default function GamesPage() {
       active = false;
     };
   }, []);
+
+  async function handleCreateGame() {
+    setAdminError(null);
+    setAdminMessage(null);
+    try {
+      const token = localStorage.getItem("accessToken") ?? "";
+      const created = await graphqlRequest<CreateGameMutation>(
+        CREATE_GAME_MUTATION,
+        {
+          input: {
+            slug: createSlug,
+            title: createTitle,
+            description: createDescription,
+            technology: createTechnology,
+          },
+        },
+        { token }
+      );
+
+      setGames((previous) => [created.createGame, ...(previous ?? [])]);
+      setAdminMessage("Game created.");
+      setCreateTitle("");
+      setCreateSlug("");
+      setCreateDescription("");
+    } catch (creationError: unknown) {
+      setAdminError(
+        creationError instanceof Error ? creationError.message : "Unable to create game"
+      );
+    }
+  }
+
+  async function handleUpdateGame() {
+    setAdminError(null);
+    setAdminMessage(null);
+    try {
+      const token = localStorage.getItem("accessToken") ?? "";
+      const updated = await graphqlRequest<UpdateGameMutation>(
+        UPDATE_GAME_MUTATION,
+        {
+          id: updateId,
+          input: {
+            title: updateTitle || undefined,
+            description: updateDescription || undefined,
+            status: updateStatus || undefined,
+          },
+        },
+        { token }
+      );
+
+      setGames((previous) =>
+        (previous ?? []).map((game) =>
+          game.id === updated.updateGame.id ? { ...game, ...updated.updateGame } : game
+        )
+      );
+      setAdminMessage("Game updated.");
+    } catch (updateError: unknown) {
+      setAdminError(updateError instanceof Error ? updateError.message : "Unable to update game");
+    }
+  }
 
   const filtered = useMemo(() => {
     const source = games ?? [];
@@ -79,6 +186,90 @@ export default function GamesPage() {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-4 p-6">
       <h1 className="text-3xl font-semibold">Games catalog</h1>
+
+      <section className="grid gap-3 rounded border p-4">
+        <h2 className="text-lg font-semibold">Operator catalog management</h2>
+        <p className="text-sm text-zinc-600">
+          Requires authenticated token in local storage.
+        </p>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <input
+            className="rounded border px-3 py-2"
+            placeholder="New game title"
+            value={createTitle}
+            onChange={(event) => setCreateTitle(event.target.value)}
+          />
+          <input
+            className="rounded border px-3 py-2"
+            placeholder="New game slug"
+            value={createSlug}
+            onChange={(event) => setCreateSlug(event.target.value)}
+          />
+          <input
+            className="rounded border px-3 py-2 sm:col-span-2"
+            placeholder="New game description"
+            value={createDescription}
+            onChange={(event) => setCreateDescription(event.target.value)}
+          />
+          <input
+            className="rounded border px-3 py-2"
+            placeholder="Technology"
+            value={createTechnology}
+            onChange={(event) => setCreateTechnology(event.target.value)}
+          />
+          <button
+            type="button"
+            className="rounded bg-black px-4 py-2 text-white"
+            onClick={handleCreateGame}
+          >
+            Create game
+          </button>
+        </div>
+
+        <div className="grid gap-2 sm:grid-cols-2">
+          <input
+            className="rounded border px-3 py-2"
+            placeholder="Game id to update"
+            value={updateId}
+            onChange={(event) => setUpdateId(event.target.value)}
+          />
+          <input
+            className="rounded border px-3 py-2"
+            placeholder="Updated title"
+            value={updateTitle}
+            onChange={(event) => setUpdateTitle(event.target.value)}
+          />
+          <input
+            className="rounded border px-3 py-2 sm:col-span-2"
+            placeholder="Updated description"
+            value={updateDescription}
+            onChange={(event) => setUpdateDescription(event.target.value)}
+          />
+          <select
+            className="rounded border px-3 py-2"
+            value={updateStatus}
+            onChange={(event) => setUpdateStatus(event.target.value)}
+          >
+            <option value="published">published</option>
+            <option value="draft">draft</option>
+            <option value="archived">archived</option>
+          </select>
+          <button
+            type="button"
+            className="rounded border px-4 py-2"
+            onClick={handleUpdateGame}
+          >
+            Update game
+          </button>
+        </div>
+
+        {adminError ? (
+          <p className="text-sm text-red-700" role="alert">
+            {adminError}
+          </p>
+        ) : null}
+        {adminMessage ? <p className="text-sm text-green-700">{adminMessage}</p> : null}
+      </section>
 
       <div className="grid gap-2 sm:grid-cols-3">
         <input
