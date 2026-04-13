@@ -11,6 +11,7 @@ import { isDecisionOverlayEvent } from "../../../lib/overlay-events";
 import { getRunPrompt, RunState } from "../../../lib/run-prompts";
 import { loadRunSave, persistRunSave } from "../../../lib/save-client";
 import { submitScore } from "../../../lib/leaderboard-client";
+import { withRetry } from "../../../lib/retry";
 import { CatalogGame } from "../../../types/catalog";
 
 export default function PlayPage() {
@@ -30,6 +31,7 @@ export default function PlayPage() {
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [restoreStatus, setRestoreStatus] = useState<"idle" | "restoring" | "restored" | "empty" | "error">("idle");
   const [scoreStatus, setScoreStatus] = useState<"idle" | "submitting" | "submitted" | "error">("idle");
+  const [persistenceError, setPersistenceError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!slug) {
@@ -143,23 +145,28 @@ export default function PlayPage() {
             onClick={async () => {
               if (!game) return;
               setSaveStatus("saving");
+              setPersistenceError(null);
               try {
-                await persistRunSave({
-                  gameSlug: game.slug,
-                  playtimeMinutes: 5,
-                  saveData: {
-                    level: 1,
-                    xp: 20,
-                    xyst: 10,
-                    runsCompleted: 1,
-                    highestWave: 2,
-                    totalKills: 15,
-                    ownedSkills: [],
-                  },
-                });
+                await withRetry(() =>
+                  persistRunSave({
+                    gameSlug: game.slug,
+                    playtimeMinutes: 5,
+                    saveData: {
+                      level: 1,
+                      xp: 20,
+                      xyst: 10,
+                      runsCompleted: 1,
+                      highestWave: 2,
+                      totalKills: 15,
+                      ownedSkills: [],
+                    },
+                  })
+                );
                 setSaveStatus("saved");
               } catch {
+                console.error("[persistence] save_failed");
                 setSaveStatus("error");
+                setPersistenceError("Save failed after retry.");
               }
             }}
           >
@@ -171,11 +178,14 @@ export default function PlayPage() {
             onClick={async () => {
               if (!game) return;
               setScoreStatus("submitting");
+              setPersistenceError(null);
               try {
-                await submitScore(game.slug, 1200);
+                await withRetry(() => submitScore(game.slug, 1200));
                 setScoreStatus("submitted");
               } catch {
+                console.error("[persistence] score_submit_failed");
                 setScoreStatus("error");
+                setPersistenceError("Score submission failed after retry.");
               }
             }}
           >
@@ -192,6 +202,7 @@ export default function PlayPage() {
           {scoreStatus === "submitting" ? <p role="status">Submitting score...</p> : null}
           {scoreStatus === "submitted" ? <FeedbackMessage variant="success" message="Score submitted." /> : null}
           {scoreStatus === "error" ? <FeedbackMessage variant="error" message="Unable to submit score." /> : null}
+          {persistenceError ? <FeedbackMessage variant="error" message={persistenceError} /> : null}
           <iframe
             ref={iframeRef}
             title={`${game.title} launch frame`}
