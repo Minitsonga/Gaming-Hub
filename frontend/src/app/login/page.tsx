@@ -2,7 +2,9 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { FeedbackMessage } from "../../components/feedback-message";
+import { useAppPreferences } from "../../components/app-preferences";
 
 type LoginResponse = {
   data?: {
@@ -35,10 +37,13 @@ const LOGIN_MUTATION = `
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { t } = useAppPreferences();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const loggedOut = searchParams.get("loggedOut") === "1";
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -85,11 +90,18 @@ export default function LoginPage() {
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center p-6">
-      <h1 className="mb-6 text-2xl font-semibold">Login</h1>
+      <h1 className="mb-6 text-2xl font-semibold">{t("Login", "Connexion")}</h1>
+
+      {loggedOut ? (
+        <FeedbackMessage
+          variant="info"
+          message={t("You have been logged out.", "Vous avez ete deconnecte.")}
+        />
+      ) : null}
 
       <form className="flex flex-col gap-4" onSubmit={onSubmit}>
         <label className="flex flex-col gap-1">
-          <span className="text-sm">Email</span>
+          <span className="text-sm">{t("Email", "Email")}</span>
           <input
             required
             type="email"
@@ -100,7 +112,7 @@ export default function LoginPage() {
         </label>
 
         <label className="flex flex-col gap-1">
-          <span className="text-sm">Password</span>
+          <span className="text-sm">{t("Password", "Mot de passe")}</span>
           <input
             required
             type="password"
@@ -112,23 +124,22 @@ export default function LoginPage() {
 
         <button
           disabled={loading}
-          className="rounded bg-black px-4 py-2 text-white disabled:opacity-50"
+          className="rounded bg-black px-4 py-2 text-white disabled:opacity-50 dark:bg-zinc-200 dark:text-black"
           type="submit"
+          aria-label={t("Submit login form", "Soumettre le formulaire de connexion")}
         >
-          {loading ? "Logging in..." : "Login"}
+          {loading ? t("Logging in...", "Connexion en cours...") : t("Login", "Connexion")}
         </button>
       </form>
 
       {error ? (
-        <p className="mt-4 text-sm text-red-600" role="alert" aria-live="polite">
-          {error}
-        </p>
+        <FeedbackMessage variant="error" message={error} />
       ) : null}
 
       <p className="mt-6 text-sm">
-        No account yet?{" "}
+        {t("No account yet?", "Pas encore de compte ?")}{" "}
         <Link className="underline" href="/register">
-          Create one
+          {t("Create one", "Creer un compte")}
         </Link>
       </p>
     </main>

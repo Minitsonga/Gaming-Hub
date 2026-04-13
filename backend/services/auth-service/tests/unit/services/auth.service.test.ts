@@ -46,10 +46,21 @@ describe('AuthService', () => {
       expect(mockUserRepo.updateRefreshToken).toHaveBeenCalled();
     });
 
-    it('should throw on duplicate email or invalid input', async () => {
+    it('should throw on duplicate email', async () => {
       mockUserRepo.findByEmail.mockResolvedValue({ _id: '123', email: validInput.email } as any);
       await expect(authService.register(validInput)).rejects.toThrow('Email already exists');
+    });
 
+    it('should throw on duplicate username', async () => {
+      mockUserRepo.findByEmail.mockResolvedValue(null);
+      mockUserRepo.findByUsername.mockResolvedValue({
+        _id: '123',
+        username: validInput.username,
+      } as any);
+      await expect(authService.register(validInput)).rejects.toThrow('Username already exists');
+    });
+
+    it('should throw on invalid register payload', async () => {
       await expect(
         authService.register({ username: 'ab', email: 'x', password: '1' } as any)
       ).rejects.toThrow();
@@ -157,6 +168,23 @@ describe('AuthService', () => {
       mockUserRepo.updateRefreshToken.mockResolvedValue(undefined);
       await expect(authService.logout('123')).resolves.toBe(true);
       expect(mockUserRepo.updateRefreshToken).toHaveBeenCalledWith('123', null);
+    });
+
+    it('should reject refresh flow after logout cleared server token', async () => {
+      const staleRefreshToken = generateRefreshToken('123');
+      mockUserRepo.findById.mockResolvedValue({
+        _id: '123',
+        username: 'test',
+        email: 't@t.com',
+        role: 'user',
+        refreshToken: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any);
+
+      await expect(authService.refreshToken({ refreshToken: staleRefreshToken })).rejects.toThrow(
+        'Invalid refresh token'
+      );
     });
   });
 });

@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { FeedbackMessage } from "../../components/feedback-message";
+import { useAppPreferences } from "../../components/app-preferences";
 
 type StoredUser = {
   username?: string;
@@ -11,6 +13,8 @@ type StoredUser = {
 
 export default function ProtectedPage() {
   const router = useRouter();
+  const { t } = useAppPreferences();
+  const [logoutError, setLogoutError] = useState<string | null>(null);
   const [user] = useState<StoredUser | null>(() => {
     if (typeof window === "undefined") return null;
     try {
@@ -32,26 +36,49 @@ export default function ProtectedPage() {
     return <main className="p-6">Checking session...</main>;
   }
 
-  function handleLogout() {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("user");
-    router.push("/login");
+  async function handleLogout() {
+    setLogoutError(null);
+    const accessToken = localStorage.getItem("accessToken");
+    const endpoint = process.env.NEXT_PUBLIC_GRAPHQL_URL ?? "http://localhost:4000/graphql";
+
+    try {
+      if (accessToken) {
+        await fetch(endpoint, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${accessToken}`,
+          },
+          body: JSON.stringify({
+            query: "mutation Logout { logout }",
+          }),
+        });
+      }
+    } catch {
+      setLogoutError(t("Unable to contact server during logout.", "Echec deconnexion serveur."));
+    } finally {
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("refreshToken");
+      localStorage.removeItem("user");
+      router.replace("/login?loggedOut=1");
+    }
   }
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-4 p-6">
-      <h1 className="text-2xl font-semibold">Protected area</h1>
-      <p>Welcome {user.username ?? user.email ?? "player"}.</p>
+      <h1 className="text-2xl font-semibold">{t("Protected area", "Espace protege")}</h1>
+      <p>{t("Welcome", "Bienvenue")} {user.username ?? user.email ?? "player"}.</p>
       <button
         type="button"
         onClick={handleLogout}
-        className="w-fit rounded bg-black px-4 py-2 text-white"
+        className="w-fit rounded bg-black px-4 py-2 text-white dark:bg-zinc-200 dark:text-black"
+        aria-label={t("Logout from current session", "Se deconnecter de la session")}
       >
-        Logout
+        {t("Logout", "Deconnexion")}
       </button>
+      {logoutError ? <FeedbackMessage variant="error" message={logoutError} /> : null}
       <Link className="underline" href="/">
-        Back home
+        {t("Back home", "Retour accueil")}
       </Link>
     </main>
   );
