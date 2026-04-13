@@ -8,6 +8,7 @@ import { fetchCatalogGames } from "../../../lib/catalog-client";
 import { buildLaunchUrl, isLaunchableStatus } from "../../../lib/game-launch";
 import { isDecisionOverlayEvent } from "../../../lib/overlay-events";
 import { getRunPrompt, RunState } from "../../../lib/run-prompts";
+import { persistRunSave } from "../../../lib/save-client";
 import { CatalogGame } from "../../../types/catalog";
 
 export default function PlayPage() {
@@ -24,6 +25,7 @@ export default function PlayPage() {
   } | null>(null);
   const [runState, setRunState] = useState<RunState>("idle");
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   useEffect(() => {
     if (!slug) {
@@ -102,6 +104,39 @@ export default function PlayPage() {
           >
             Restart run
           </button>
+          <button
+            type="button"
+            className="w-fit rounded border px-3 py-1"
+            onClick={async () => {
+              if (!game) return;
+              setSaveStatus("saving");
+              try {
+                await persistRunSave({
+                  gameSlug: game.slug,
+                  playtimeMinutes: 5,
+                  saveData: {
+                    level: 1,
+                    xp: 20,
+                    xyst: 10,
+                    runsCompleted: 1,
+                    highestWave: 2,
+                    totalKills: 15,
+                    ownedSkills: [],
+                  },
+                });
+                setSaveStatus("saved");
+              } catch {
+                setSaveStatus("error");
+              }
+            }}
+          >
+            Save progression
+          </button>
+          {saveStatus === "saving" ? <p role="status">Saving progression...</p> : null}
+          {saveStatus === "saved" ? <FeedbackMessage variant="success" message="Progression saved." /> : null}
+          {saveStatus === "error" ? (
+            <FeedbackMessage variant="error" message="Unable to save progression." />
+          ) : null}
           <iframe
             ref={iframeRef}
             title={`${game.title} launch frame`}
