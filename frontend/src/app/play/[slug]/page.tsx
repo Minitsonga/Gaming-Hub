@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { FeedbackMessage } from "../../../components/feedback-message";
 import { RunDecisionOverlay } from "../../../components/run-decision-overlay";
 import { fetchCatalogGames } from "../../../lib/catalog-client";
 import { buildLaunchUrl, isLaunchableStatus } from "../../../lib/game-launch";
 import { isDecisionOverlayEvent } from "../../../lib/overlay-events";
+import { getRunPrompt, RunState } from "../../../lib/run-prompts";
 import { CatalogGame } from "../../../types/catalog";
 
 export default function PlayPage() {
@@ -21,6 +22,8 @@ export default function PlayPage() {
     description: string;
     choices: string[];
   } | null>(null);
+  const [runState, setRunState] = useState<RunState>("idle");
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
   useEffect(() => {
     if (!slug) {
@@ -61,6 +64,11 @@ export default function PlayPage() {
     function onMessage(event: MessageEvent) {
       if (isDecisionOverlayEvent(event.data)) {
         setOverlayData(event.data.payload);
+        setRunState("paused");
+      }
+      if (event.data?.type === "RUN_STATE_CHANGED") {
+        const nextState = event.data?.payload?.state as RunState | undefined;
+        if (nextState) setRunState(nextState);
       }
     }
     window.addEventListener("message", onMessage);
@@ -83,7 +91,19 @@ export default function PlayPage() {
             Launching <strong>{game.title}</strong> ({game.technology}).
           </p>
           {!iframeLoaded ? <p role="status">Loading game client...</p> : null}
+          <p className="text-sm text-zinc-600 dark:text-zinc-300">{getRunPrompt(runState)}</p>
+          <button
+            type="button"
+            className="w-fit rounded border px-3 py-1"
+            onClick={() => {
+              iframeRef.current?.contentWindow?.postMessage({ type: "RESTART_RUN" }, "*");
+              setRunState("idle");
+            }}
+          >
+            Restart run
+          </button>
           <iframe
+            ref={iframeRef}
             title={`${game.title} launch frame`}
             src={launchUrl}
             className="h-[70vh] w-full rounded border"
@@ -99,6 +119,7 @@ export default function PlayPage() {
           onSelect={(choice) => {
             window.postMessage({ type: "DECISION_SELECTED", payload: { choice } }, "*");
             setOverlayData(null);
+            setRunState("running");
           }}
           onClose={() => setOverlayData(null)}
         />
