@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { FeedbackMessage } from "../../../components/feedback-message";
 import { RunDecisionOverlay } from "../../../components/run-decision-overlay";
 import { fetchCatalogGames } from "../../../lib/catalog-client";
@@ -9,6 +10,7 @@ import { buildLaunchUrl, isLaunchableStatus } from "../../../lib/game-launch";
 import { isDecisionOverlayEvent } from "../../../lib/overlay-events";
 import { getRunPrompt, RunState } from "../../../lib/run-prompts";
 import { loadRunSave, persistRunSave } from "../../../lib/save-client";
+import { submitScore } from "../../../lib/leaderboard-client";
 import { CatalogGame } from "../../../types/catalog";
 
 export default function PlayPage() {
@@ -27,6 +29,7 @@ export default function PlayPage() {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [restoreStatus, setRestoreStatus] = useState<"idle" | "restoring" | "restored" | "empty" | "error">("idle");
+  const [scoreStatus, setScoreStatus] = useState<"idle" | "submitting" | "submitted" | "error">("idle");
 
   useEffect(() => {
     if (!slug) {
@@ -162,11 +165,33 @@ export default function PlayPage() {
           >
             Save progression
           </button>
+          <button
+            type="button"
+            className="w-fit rounded border px-3 py-1"
+            onClick={async () => {
+              if (!game) return;
+              setScoreStatus("submitting");
+              try {
+                await submitScore(game.slug, 1200);
+                setScoreStatus("submitted");
+              } catch {
+                setScoreStatus("error");
+              }
+            }}
+          >
+            Submit score
+          </button>
+          <Link className="underline" href={`/leaderboard/${slug}`}>
+            Open leaderboard
+          </Link>
           {saveStatus === "saving" ? <p role="status">Saving progression...</p> : null}
           {saveStatus === "saved" ? <FeedbackMessage variant="success" message="Progression saved." /> : null}
           {saveStatus === "error" ? (
             <FeedbackMessage variant="error" message="Unable to save progression." />
           ) : null}
+          {scoreStatus === "submitting" ? <p role="status">Submitting score...</p> : null}
+          {scoreStatus === "submitted" ? <FeedbackMessage variant="success" message="Score submitted." /> : null}
+          {scoreStatus === "error" ? <FeedbackMessage variant="error" message="Unable to submit score." /> : null}
           <iframe
             ref={iframeRef}
             title={`${game.title} launch frame`}
