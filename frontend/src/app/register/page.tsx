@@ -76,14 +76,18 @@ function mapServerErrorToFields(message: string): RegisterFieldErrors {
   const normalizedMessage = message.toLowerCase();
   const errors: RegisterFieldErrors = { ...EMPTY_FIELD_ERRORS };
 
-  if (normalizedMessage.includes("username")) {
-    errors.username = message;
+  if (normalizedMessage.includes("username already exists")) {
+    errors.username = "Username is already taken.";
+  } else if (normalizedMessage.includes("username")) {
+    errors.username = "Please check your username.";
   }
-  if (normalizedMessage.includes("email")) {
-    errors.email = message;
+  if (normalizedMessage.includes("email already exists")) {
+    errors.email = "Email is already used.";
+  } else if (normalizedMessage.includes("email")) {
+    errors.email = "Please check your email address.";
   }
   if (normalizedMessage.includes("password")) {
-    errors.password = message;
+    errors.password = "Please check your password.";
   }
 
   return errors;
@@ -98,6 +102,43 @@ export default function RegisterPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<RegisterFieldErrors>(EMPTY_FIELD_ERRORS);
+
+  function localizeFieldErrors(errors: RegisterFieldErrors): RegisterFieldErrors {
+    return {
+      username:
+        errors.username === "Username is already taken."
+          ? t("Username is already taken.", "Ce nom d'utilisateur est deja pris.")
+          : errors.username === "Please check your username."
+            ? t("Please check your username.", "Veuillez verifier votre nom d'utilisateur.")
+            : null,
+      email:
+        errors.email === "Email is already used."
+          ? t("Email is already used.", "Cet email est deja utilise.")
+          : errors.email === "Please check your email address."
+            ? t("Please check your email address.", "Veuillez verifier votre adresse email.")
+            : null,
+      password: errors.password
+        ? t("Please check your password.", "Veuillez verifier votre mot de passe.")
+        : null,
+    };
+  }
+
+  function getSafeServerError(message: string): string {
+    const normalizedMessage = message.toLowerCase();
+    const internalMarkers = ["cannot read properties", "stack", "internal", "kind", "typeerror"];
+    if (internalMarkers.some((marker) => normalizedMessage.includes(marker))) {
+      return t(
+        "Something went wrong on our side. Please try again.",
+        "Une erreur interne est survenue. Veuillez reessayer."
+      );
+    }
+
+    if (normalizedMessage.includes("registration failed")) {
+      return t("Registration failed. Please try again.", "L'inscription a echoue. Veuillez reessayer.");
+    }
+
+    return t("Unable to create account with provided data.", "Impossible de creer le compte avec les donnees fournies.");
+  }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -130,17 +171,17 @@ export default function RegisterPage() {
 
       if (!response.ok || payload.errors?.length) {
         const message = payload.errors?.[0]?.message ?? "Registration failed.";
-        const nextFieldErrors = mapServerErrorToFields(message);
+        const nextFieldErrors = localizeFieldErrors(mapServerErrorToFields(message));
         setFieldErrors(nextFieldErrors);
         if (!hasFieldErrors(nextFieldErrors)) {
-          setError(message);
+          setError(getSafeServerError(message));
         }
         return;
       }
 
       const result = payload.data?.register;
       if (!result) {
-        setError("Registration failed.");
+        setError(t("Registration failed. Please try again.", "L'inscription a echoue. Veuillez reessayer."));
         return;
       }
 
@@ -148,13 +189,13 @@ export default function RegisterPage() {
       localStorage.setItem("refreshToken", result.refreshToken);
       localStorage.setItem("user", JSON.stringify(result.user));
 
-      setSuccess("Account created successfully.");
+      setSuccess(t("Account created successfully.", "Compte cree avec succes."));
       setUsername("");
       setEmail("");
       setPassword("");
       setFieldErrors(EMPTY_FIELD_ERRORS);
     } catch {
-      setError("Unable to reach the server.");
+      setError(t("Unable to reach the server.", "Impossible de contacter le serveur."));
     } finally {
       setLoading(false);
     }

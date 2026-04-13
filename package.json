@@ -12,6 +12,9 @@
     "dev:catalog": "npm run dev --workspace=backend/services/catalog-service",
     "dev:roguelike": "npm run dev --workspace=backend/services/roguelike-service",
     "dev:analytics": "npm run dev --workspace=backend/services/analytics-service",
+    "dev:gateway:delayed": "node -e \"setTimeout(() => process.exit(0), 8000)\" && npm run dev:gateway",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:all": "concurrently -k -n auth,catalog,roguelike,analytics,gateway,frontend -c blue,green,magenta,cyan,yellow,white \"npm run dev:auth\" \"npm run dev:catalog\" \"npm run dev:roguelike\" \"npm run dev:analytics\" \"npm run dev:gateway:delayed\" \"npm run dev:frontend\"",
     "release": "node scripts/release.js",
     "lint": "eslint backend",
     "lint:fix": "eslint backend --fix",
@@ -26,6 +29,7 @@
     "reliability:check": "node scripts/reliability-check.mjs"
   },
   "devDependencies": {
+    "concurrently": "^9.2.1",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
     "eslint": "^9.0.0",
