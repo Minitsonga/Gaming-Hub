@@ -21,7 +21,8 @@
     "load-test:health": "k6 run load-tests/health.js",
     "load-test:graphql": "k6 run load-tests/graphql.js",
     "load-test:load": "k6 run load-tests/load.js",
-    "load-test:stress": "k6 run load-tests/stress.js"
+    "load-test:stress": "k6 run load-tests/stress.js",
+    "health:smoke": "node scripts/health-smoke.mjs"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.0.0",
