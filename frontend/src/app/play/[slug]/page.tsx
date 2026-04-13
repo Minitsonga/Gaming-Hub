@@ -3,8 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { FeedbackMessage } from "../../../components/feedback-message";
+import { RunDecisionOverlay } from "../../../components/run-decision-overlay";
 import { fetchCatalogGames } from "../../../lib/catalog-client";
 import { buildLaunchUrl, isLaunchableStatus } from "../../../lib/game-launch";
+import { isDecisionOverlayEvent } from "../../../lib/overlay-events";
 import { CatalogGame } from "../../../types/catalog";
 
 export default function PlayPage() {
@@ -14,6 +16,11 @@ export default function PlayPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [iframeLoaded, setIframeLoaded] = useState(false);
+  const [overlayData, setOverlayData] = useState<{
+    title: string;
+    description: string;
+    choices: string[];
+  } | null>(null);
 
   useEffect(() => {
     if (!slug) {
@@ -50,6 +57,16 @@ export default function PlayPage() {
     return () => controller.abort();
   }, [slug]);
 
+  useEffect(() => {
+    function onMessage(event: MessageEvent) {
+      if (isDecisionOverlayEvent(event.data)) {
+        setOverlayData(event.data.payload);
+      }
+    }
+    window.addEventListener("message", onMessage);
+    return () => window.removeEventListener("message", onMessage);
+  }, []);
+
   const launchUrl = useMemo(() => {
     const baseUrl = process.env.NEXT_PUBLIC_GAME_HOST_URL ?? "http://localhost:8080";
     return game ? buildLaunchUrl(baseUrl, game.slug) : "";
@@ -73,6 +90,18 @@ export default function PlayPage() {
             onLoad={() => setIframeLoaded(true)}
           />
         </section>
+      ) : null}
+      {overlayData ? (
+        <RunDecisionOverlay
+          title={overlayData.title}
+          description={overlayData.description}
+          choices={overlayData.choices}
+          onSelect={(choice) => {
+            window.postMessage({ type: "DECISION_SELECTED", payload: { choice } }, "*");
+            setOverlayData(null);
+          }}
+          onClose={() => setOverlayData(null)}
+        />
       ) : null}
     </main>
   );
