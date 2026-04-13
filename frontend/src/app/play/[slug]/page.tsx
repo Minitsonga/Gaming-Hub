@@ -8,7 +8,7 @@ import { fetchCatalogGames } from "../../../lib/catalog-client";
 import { buildLaunchUrl, isLaunchableStatus } from "../../../lib/game-launch";
 import { isDecisionOverlayEvent } from "../../../lib/overlay-events";
 import { getRunPrompt, RunState } from "../../../lib/run-prompts";
-import { persistRunSave } from "../../../lib/save-client";
+import { loadRunSave, persistRunSave } from "../../../lib/save-client";
 import { CatalogGame } from "../../../types/catalog";
 
 export default function PlayPage() {
@@ -26,6 +26,7 @@ export default function PlayPage() {
   const [runState, setRunState] = useState<RunState>("idle");
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [restoreStatus, setRestoreStatus] = useState<"idle" | "restoring" | "restored" | "empty" | "error">("idle");
 
   useEffect(() => {
     if (!slug) {
@@ -63,6 +64,25 @@ export default function PlayPage() {
   }, [slug]);
 
   useEffect(() => {
+    if (!game || !iframeLoaded) return;
+    async function restoreSave() {
+      setRestoreStatus("restoring");
+      try {
+        const saveData = await loadRunSave(game.slug);
+        if (!saveData) {
+          setRestoreStatus("empty");
+          return;
+        }
+        iframeRef.current?.contentWindow?.postMessage({ type: "LOAD_SAVE", payload: saveData }, "*");
+        setRestoreStatus("restored");
+      } catch {
+        setRestoreStatus("error");
+      }
+    }
+    restoreSave();
+  }, [game, iframeLoaded]);
+
+  useEffect(() => {
     function onMessage(event: MessageEvent) {
       if (isDecisionOverlayEvent(event.data)) {
         setOverlayData(event.data.payload);
@@ -93,6 +113,16 @@ export default function PlayPage() {
             Launching <strong>{game.title}</strong> ({game.technology}).
           </p>
           {!iframeLoaded ? <p role="status">Loading game client...</p> : null}
+          {restoreStatus === "restoring" ? <p role="status">Restoring progression...</p> : null}
+          {restoreStatus === "restored" ? (
+            <FeedbackMessage variant="success" message="Progression restored." />
+          ) : null}
+          {restoreStatus === "empty" ? (
+            <FeedbackMessage variant="info" message="No previous progression found." />
+          ) : null}
+          {restoreStatus === "error" ? (
+            <FeedbackMessage variant="error" message="Unable to restore progression." />
+          ) : null}
           <p className="text-sm text-zinc-600 dark:text-zinc-300">{getRunPrompt(runState)}</p>
           <button
             type="button"
