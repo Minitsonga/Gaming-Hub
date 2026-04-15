@@ -11,6 +11,7 @@ type PreferencesContextValue = {
   setLanguage: (language: Language) => void;
   setTheme: (theme: Theme) => void;
   translate: (englishText: string, frenchText: string) => string;
+  t: (englishText: string, frenchText: string) => string;
 };
 
 const PreferencesContext = createContext<PreferencesContextValue | null>(null);
@@ -36,16 +37,18 @@ export function AppPreferencesProvider({ children }: { children: ReactNode }) {
     document.documentElement.classList.toggle("dark", theme === "dark");
   }, [theme]);
 
-  const value = useMemo<PreferencesContextValue>(
-    () => ({
+  const value = useMemo<PreferencesContextValue>(() => {
+    const translate = (englishText: string, frenchText: string) =>
+      language === "fr" ? frenchText : englishText;
+    return {
       language,
       theme,
       setLanguage,
       setTheme,
-      translate: (englishText, frenchText) => (language === "fr" ? frenchText : englishText),
-    }),
-    [language, theme]
-  );
+      translate,
+      t: translate,
+    };
+  }, [language, theme]);
 
   return <PreferencesContext.Provider value={value}>{children}</PreferencesContext.Provider>;
 }

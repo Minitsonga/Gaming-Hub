@@ -21,7 +21,7 @@ export function PreferencesBar() {
         type="button"
         className="rounded border px-3 py-1 dark:bg-zinc-900"
         onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-        aria-label={t("Toggle theme", "Changer le theme")}
+        aria-label={translate("Toggle theme", "Changer le theme")}
       >
         {theme === "dark"
           ? translate("Light", "Clair")
