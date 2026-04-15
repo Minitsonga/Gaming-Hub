@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { graphqlRequest } from "../../lib/graphql";
+import { graphqlRequest } from "@/lib/graphql";
 
 type Game = {
   id: string;
@@ -333,6 +333,9 @@ export default function GamesPage() {
             </div>
             <Link className="mt-4 inline-block underline" href={`/games/${game.id}`}>
               View details
+            </Link>
+            <Link className="mt-2 inline-block text-sm underline" href={`/games/${game.id}/play`}>
+              Launch session
             </Link>
           </article>
         ))}
