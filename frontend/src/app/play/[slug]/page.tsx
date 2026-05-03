@@ -218,7 +218,10 @@ export default function PlayPage() {
           description={overlayData.description}
           choices={overlayData.choices}
           onSelect={(choice) => {
-            window.postMessage({ type: "DECISION_SELECTED", payload: { choice } }, "*");
+            iframeRef.current?.contentWindow?.postMessage(
+              { type: "DECISION_SELECTED", payload: { choice } },
+              "*"
+            );
             setOverlayData(null);
             setRunState("running");
           }}

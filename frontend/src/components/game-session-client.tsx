@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { graphqlRequest } from "@/lib/graphql";
 
 type GameSessionClientProps = {
@@ -88,6 +88,7 @@ export function GameSessionClient({ gameId, gameTitle, launchUrl }: GameSessionC
   const [operationError, setOperationError] = useState<string | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardItem[]>([]);
   const [lastFailedAction, setLastFailedAction] = useState<FailedAction>(null);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const token = useMemo(() => localStorage.getItem("accessToken") ?? "", []);
 
   const refreshLeaderboard = useCallback(async () => {
@@ -211,7 +212,7 @@ export function GameSessionClient({ gameId, gameTitle, launchUrl }: GameSessionC
   }, [saveProgression, submitScore]);
 
   function chooseOverlayChoice(choiceId: string) {
-    window.postMessage(
+    iframeRef.current?.contentWindow?.postMessage(
       {
         type: "OVERLAY_CHOICE",
         payload: { gameId, choiceId },
@@ -226,7 +227,7 @@ export function GameSessionClient({ gameId, gameTitle, launchUrl }: GameSessionC
     setOverlay(null);
     setRuntimeError(null);
     setIsLoading(true);
-    window.postMessage(
+    iframeRef.current?.contentWindow?.postMessage(
       {
         type: "RESTART_RUN",
         payload: { gameId, restorePayload: lastSavePayload ?? null },
@@ -255,6 +256,7 @@ export function GameSessionClient({ gameId, gameTitle, launchUrl }: GameSessionC
           </p>
         ) : null}
         <iframe
+          ref={iframeRef}
           title={`${gameTitle} runtime`}
           src={launchUrl}
           className="h-[620px] w-full"
