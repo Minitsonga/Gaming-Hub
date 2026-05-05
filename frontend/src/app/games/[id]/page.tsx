@@ -3,11 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { FeedbackMessage } from "../../../components/feedback-message";
+import { useAppPreferences } from "../../../components/app-preferences";
 import { GameDetailView } from "../../../components/game-detail-view";
 import { fetchGameById } from "../../../lib/game-client";
 import { CatalogGame } from "../../../types/catalog";
 
 export default function GameDetailPage() {
+  const { t } = useAppPreferences();
   const params = useParams<{ id: string }>();
   const [game, setGame] = useState<CatalogGame | null>(null);
   const [loading, setLoading] = useState(true);
@@ -17,7 +19,7 @@ export default function GameDetailPage() {
   useEffect(() => {
     if (!resolvedId) {
       setLoading(false);
-      setError("Invalid game identifier.");
+      setError(t("Invalid game identifier.", "Identifiant de jeu invalide."));
       return;
     }
 
@@ -29,12 +31,12 @@ export default function GameDetailPage() {
         const nextGame = await fetchGameById(resolvedId, controller.signal);
         if (!nextGame) {
           setGame(null);
-          setError("Game not found.");
+          setError(t("Game not found.", "Jeu introuvable."));
           return;
         }
         setGame(nextGame);
       } catch {
-        setError("Unable to load game detail.");
+        setError(t("Unable to load game detail.", "Impossible de charger le detail du jeu."));
       } finally {
         setLoading(false);
       }
@@ -45,11 +47,11 @@ export default function GameDetailPage() {
   }, [resolvedId]);
 
   const content = useMemo(() => {
-    if (loading) return <p role="status">Loading game detail...</p>;
+    if (loading) return <p role="status">{t("Loading game detail...", "Chargement du detail du jeu...")}</p>;
     if (error) return <FeedbackMessage variant="error" message={error} />;
-    if (!game) return <FeedbackMessage variant="info" message="No game to display." />;
+    if (!game) return <FeedbackMessage variant="info" message={t("No game to display.", "Aucun jeu a afficher.")} />;
     return <GameDetailView game={game} />;
-  }, [error, game, loading]);
+  }, [error, game, loading, t]);
 
-  return <main className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-4 p-6">{content}</main>;
+  return <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-4 px-6 py-8 sm:py-10">{content}</main>;
 }

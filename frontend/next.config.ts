@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  turbopack: {
+    // Limit Turbopack file watching to the frontend workspace.
+    root: __dirname,
+  },
 };
 
 export default nextConfig;

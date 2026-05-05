@@ -2,11 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { useAppPreferences } from "../../../components/app-preferences";
 import { FeedbackMessage } from "../../../components/feedback-message";
 import { LeaderboardPanel } from "../../../components/leaderboard-panel";
 import { fetchLeaderboard, LeaderboardEntry } from "../../../lib/leaderboard-client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function LeaderboardPage() {
+  const { t } = useAppPreferences();
   const params = useParams<{ slug: string }>();
   const slug = params?.slug ?? "";
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
@@ -16,7 +19,7 @@ export default function LeaderboardPage() {
   useEffect(() => {
     if (!slug) {
       setLoading(false);
-      setError("Invalid game slug.");
+      setError(t("Invalid game slug.", "Slug de jeu invalide."));
       return;
     }
     async function load() {
@@ -25,7 +28,7 @@ export default function LeaderboardPage() {
       try {
         setEntries(await fetchLeaderboard(slug));
       } catch {
-        setError("Unable to load leaderboard.");
+        setError(t("Unable to load leaderboard.", "Impossible de charger le classement."));
       } finally {
         setLoading(false);
       }
@@ -34,11 +37,17 @@ export default function LeaderboardPage() {
   }, [slug]);
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-4 p-6">
-      <h1 className="text-2xl font-semibold">Leaderboard</h1>
-      {loading ? <p role="status">Loading leaderboard...</p> : null}
-      {!loading && error ? <FeedbackMessage variant="error" message={error} /> : null}
-      {!loading && !error ? <LeaderboardPanel entries={entries} /> : null}
+    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 px-6 py-8 sm:py-10">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-2xl">{t("Leaderboard", "Classement")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? <p role="status" className="text-sm text-muted-foreground">{t("Loading leaderboard...", "Chargement du classement...")}</p> : null}
+          {!loading && error ? <FeedbackMessage variant="error" message={error} /> : null}
+          {!loading && !error ? <LeaderboardPanel entries={entries} /> : null}
+        </CardContent>
+      </Card>
     </main>
   );
 }

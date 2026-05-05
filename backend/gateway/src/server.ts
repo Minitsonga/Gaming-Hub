@@ -13,21 +13,22 @@ const ROGUELIKE_SUBGRAPH_URL =
   process.env.ROGUELIKE_SUBGRAPH_URL ?? 'http://localhost:4003/graphql';
 const ANALYTICS_SUBGRAPH_URL =
   process.env.ANALYTICS_SUBGRAPH_URL ?? 'http://localhost:4004/graphql';
+const defaultDevOrigins = ['http://localhost:3000', 'http://127.0.0.1:3000'];
 const CORS_ORIGINS = (process.env.CORS_ORIGINS ?? '')
   .split(',')
   .map((origin) => origin.trim())
   .filter(Boolean);
+const resolvedCorsOrigins = CORS_ORIGINS.length > 0 ? CORS_ORIGINS : defaultDevOrigins;
 
 const corsOptions: CorsOptions = {
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
-    if (process.env.NODE_ENV !== 'production' && CORS_ORIGINS.length === 0) {
-      return callback(null, true);
-    }
-    if (CORS_ORIGINS.includes(origin)) return callback(null, true);
+    if (resolvedCorsOrigins.includes(origin)) return callback(null, true);
     return callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
+  methods: ['GET', 'POST', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
 };
 
 async function start() {
@@ -51,6 +52,7 @@ async function start() {
   const app = express();
   app.use(helmet());
   app.use(cors(corsOptions));
+  app.options(/.*/, cors(corsOptions));
   app.use(express.json());
   app.use('/graphql', expressMiddleware(server));
   app.get('/health', (_req, res) => {

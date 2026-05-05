@@ -3,20 +3,30 @@
 import { useEffect, useState } from "react";
 import { CatalogControls } from "../../components/catalog-controls";
 import { FeedbackMessage } from "../../components/feedback-message";
+import { useAppPreferences } from "../../components/app-preferences";
 import { GameCardGrid } from "../../components/game-card-grid";
 import { fetchCatalogGames } from "../../lib/catalog-client";
-import { filterAndSortGames, paginateGames } from "../../lib/catalog-view-model";
+import {
+  filterAndSortGames,
+  paginateGames,
+  type CatalogSortBy,
+  type CatalogSortOrder,
+} from "../../lib/catalog-view-model";
 import { CatalogGame } from "../../types/catalog";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const PAGE_SIZE = 6;
 
 export default function CatalogPage() {
+  const { t } = useAppPreferences();
   const [games, setGames] = useState<CatalogGame[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("");
-  const [sort, setSort] = useState<"title-asc" | "title-desc">("title-asc");
+  const [activeTag, setActiveTag] = useState("");
+  const [sortBy, setSortBy] = useState<CatalogSortBy>("relevant");
+  const [sortOrder, setSortOrder] = useState<CatalogSortOrder>("desc");
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -26,11 +36,11 @@ export default function CatalogPage() {
       setLoading(true);
       setError(null);
       try {
-        const nextGames = await fetchCatalogGames({ status }, controller.signal);
+        const nextGames = await fetchCatalogGames({ tag: activeTag }, controller.signal);
         setGames(nextGames);
       } catch (err) {
         if ((err as Error).name !== "AbortError") {
-          setError("Unable to load catalog.");
+          setError(t("Unable to load catalog.", "Impossible de charger le catalogue."));
         }
       } finally {
         setLoading(false);
@@ -39,55 +49,104 @@ export default function CatalogPage() {
 
     loadGames();
     return () => controller.abort();
-  }, [status]);
+  }, [activeTag]);
 
-  const refinedGames = filterAndSortGames(games, search, sort);
+  const refinedGames = filterAndSortGames(games, search, sortBy, sortOrder);
   const pageCount = Math.max(1, Math.ceil(refinedGames.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
   const visibleGames = paginateGames(refinedGames, currentPage, PAGE_SIZE);
 
   useEffect(() => {
     setPage(1);
-  }, [search, status, sort]);
+  }, [search, activeTag, sortBy, sortOrder]);
+
+  useEffect(() => {
+    const query = new URLSearchParams(window.location.search).get("search") ?? "";
+    setSearch(query);
+  }, []);
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-4 p-6">
-      <h1 className="text-2xl font-semibold">Game Catalog</h1>
-      <CatalogControls
-        search={search}
-        status={status}
-        sort={sort}
-        onSearchChange={setSearch}
-        onStatusChange={setStatus}
-        onSortChange={setSort}
-      />
-      {loading ? <p role="status">Loading catalog...</p> : null}
+    <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 p-6">
+      <div>
+        <h1 className="space-etched text-3xl font-semibold tracking-tight">{t("Game catalog", "Catalogue de jeux")}</h1>
+        <p className="space-subtitle mt-2 text-sm">
+          {t("Filter and open game details.", "Filtre et ouvre les details des jeux.")}
+        </p>
+      </div>
+
+      <Card className="border-sky-300/20 bg-slate-950/55 shadow-[0_8px_28px_rgba(0,0,0,0.35)]">
+        <CardHeader>
+          <CardTitle className="space-etched text-lg">{t("Filters", "Filtres")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <CatalogControls
+            search={search}
+            activeTag={activeTag}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+            onSearchChange={setSearch}
+            onTagChange={setActiveTag}
+            onSortByChange={setSortBy}
+            onSortOrderChange={setSortOrder}
+          />
+        </CardContent>
+      </Card>
+
+      {loading ? (
+        <p className="text-muted-foreground" role="status">
+          {t("Loading catalog...", "Chargement du catalogue...")}
+        </p>
+      ) : null}
       {!loading && error ? <FeedbackMessage variant="error" message={error} /> : null}
       {!loading && !error && refinedGames.length === 0 ? (
-        <FeedbackMessage variant="info" message="No games available yet." />
+        <>
+          <FeedbackMessage
+            variant="info"
+            message={t("No game matches this search right now.", "Aucun jeu ne correspond a cette recherche pour le moment.")}
+          />
+          <Card className="border-dashed border-sky-300/20 bg-slate-950/45">
+            <CardHeader>
+              <CardTitle className="space-etched text-lg">{t("Recommended right now", "Recommande en ce moment")}</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-lg border border-sky-300/20 bg-slate-950/55 p-3">
+                <p className="font-medium">{t("Roguelike Arena (example)", "Roguelike Arena (exemple)")}</p>
+                <p className="text-sm text-muted-foreground">{t("4.8 • 1842h total played • Action / Roguelike", "4.8 • 1842h jouees au total • Action / Roguelike")}</p>
+              </div>
+              <div className="rounded-lg border border-sky-300/20 bg-slate-950/55 p-3">
+                <p className="font-medium">{t("Neon Dungeon (example)", "Neon Dungeon (exemple)")}</p>
+                <p className="text-sm text-muted-foreground">{t("4.6 • 1260h total played • RPG / Adventure", "4.6 • 1260h jouees au total • RPG / Aventure")}</p>
+              </div>
+            </CardContent>
+          </Card>
+        </>
       ) : null}
       {!loading && !error && refinedGames.length > 0 ? <GameCardGrid games={visibleGames} /> : null}
       {!loading && !error && refinedGames.length > 0 ? (
-        <nav aria-label="Catalog pagination" className="mt-2 flex items-center gap-3">
-          <button
+        <nav aria-label="Catalog pagination" className="flex items-center gap-3">
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
+            className="border-sky-300/35 bg-slate-950/45 hover:bg-sky-500/10"
             onClick={() => setPage((previous) => Math.max(1, previous - 1))}
             disabled={currentPage <= 1}
-            className="rounded border px-3 py-1 disabled:opacity-50"
           >
-            Previous
-          </button>
-          <span className="text-sm">
-            Page {currentPage} / {pageCount}
+            {t("Previous", "Precedent")}
+          </Button>
+          <span className="text-sm text-muted-foreground">
+            {t("Page", "Page")} {currentPage} / {pageCount}
           </span>
-          <button
+          <Button
             type="button"
+            variant="outline"
+            size="sm"
+            className="border-sky-300/35 bg-slate-950/45 hover:bg-sky-500/10"
             onClick={() => setPage((previous) => Math.min(pageCount, previous + 1))}
             disabled={currentPage >= pageCount}
-            className="rounded border px-3 py-1 disabled:opacity-50"
           >
-            Next
-          </button>
+            {t("Next", "Suivant")}
+          </Button>
         </nav>
       ) : null}
     </main>

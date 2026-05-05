@@ -1,19 +1,24 @@
 "use client";
 
 import { LeaderboardEntry } from "../lib/leaderboard-client";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function LeaderboardPanel({ entries }: { entries: LeaderboardEntry[] }) {
   return (
-    <section aria-label="Leaderboard" className="rounded border p-4">
-      <h2 className="text-lg font-semibold">Leaderboard</h2>
-      {entries.length === 0 ? <p className="mt-2 text-sm">No scores yet.</p> : null}
-      <ol className="mt-2 flex list-decimal flex-col gap-1 pl-6 text-sm">
+    <Card aria-label="Leaderboard">
+      <CardHeader>
+        <CardTitle className="text-lg">Leaderboard</CardTitle>
+      </CardHeader>
+      <CardContent>
+      {entries.length === 0 ? <p className="text-sm text-muted-foreground">No scores yet.</p> : null}
+      <ol className="flex list-decimal flex-col gap-1 pl-6 text-sm">
         {entries.map((entry, index) => (
           <li key={`${entry.userId}-${index}`}>
             {entry.userId} - {entry.value}
           </li>
         ))}
       </ol>
-    </section>
+      </CardContent>
+    </Card>
   );
 }

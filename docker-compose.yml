@@ -3,16 +3,6 @@
 # Déploiement : sur le serveur, lancer cette stack (docker compose up -d) pour démarrer tous les services.
 
 services:
-  mongodb:
-    image: mongo:7
-    container_name: gaming-hub-mongodb
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
-    networks:
-      - gaming-hub
-
   auth-service:
     build:
       context: .
@@ -23,11 +13,8 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4001
-      MONGO_URI: mongodb://mongodb:27017/gaming-hub
     env_file:
       - backend/services/auth-service/.env
-    depends_on:
-      - mongodb
     networks:
       - gaming-hub
 
@@ -41,11 +28,8 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4002
-      MONGO_URI: mongodb://mongodb:27017/gaming-hub
     env_file:
       - backend/services/catalog-service/.env
-    depends_on:
-      - mongodb
     networks:
       - gaming-hub
 
@@ -59,12 +43,10 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4003
-      MONGO_URI: mongodb://mongodb:27017/gaming-hub
       ANALYTICS_GRAPHQL_URL: http://analytics-service:4004/graphql
     env_file:
       - backend/services/roguelike-service/.env
     depends_on:
-      - mongodb
       - analytics-service
     networks:
       - gaming-hub
@@ -79,11 +61,8 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4004
-      MONGO_URI: mongodb://mongodb:27017/gaming-hub
     env_file:
       - backend/services/analytics-service/.env
-    depends_on:
-      - mongodb
     networks:
       - gaming-hub
 
@@ -110,9 +89,6 @@ services:
       - analytics-service
     networks:
       - gaming-hub
-
-volumes:
-  mongodb_data:
 
 networks:
   gaming-hub:

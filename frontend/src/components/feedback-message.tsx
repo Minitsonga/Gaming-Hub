@@ -1,14 +1,19 @@
 "use client";
 
+import type { ReactNode } from "react";
+import { AlertCircle, CheckCircle2, Info } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
+
 type FeedbackVariant = "success" | "error" | "info";
 
-const STYLE_BY_VARIANT: Record<FeedbackVariant, string> = {
-  success: "border-green-600 bg-green-50 text-green-900 dark:bg-green-950/40 dark:text-green-100",
-  error: "border-red-600 bg-red-50 text-red-900 dark:bg-red-950/40 dark:text-red-100",
-  info: "border-blue-600 bg-blue-50 text-blue-900 dark:bg-blue-950/40 dark:text-blue-100",
+const ICONS: Record<FeedbackVariant, ReactNode> = {
+  success: <CheckCircle2 className="text-primary" aria-hidden />,
+  error: <AlertCircle className="text-destructive" aria-hidden />,
+  info: <Info className="text-muted-foreground" aria-hidden />,
 };
 
-const PREFIX_BY_VARIANT: Record<FeedbackVariant, string> = {
+const TITLES: Record<FeedbackVariant, string> = {
   success: "Success",
   error: "Error",
   info: "Info",
@@ -22,12 +27,19 @@ export function FeedbackMessage({
   variant: FeedbackVariant;
 }) {
   return (
-    <p
-      className={`mt-4 rounded border px-3 py-2 text-sm ${STYLE_BY_VARIANT[variant]}`}
+    <Alert
+      variant={variant === "error" ? "destructive" : "default"}
+      className={cn(
+        variant === "success" &&
+          "border-primary/40 bg-primary/5 text-foreground [&_[data-slot=alert-description]]:text-muted-foreground",
+        variant === "info" && "border-border bg-muted/40"
+      )}
       role={variant === "error" ? "alert" : "status"}
       aria-live="polite"
     >
-      <strong>{PREFIX_BY_VARIANT[variant]}:</strong> {message}
-    </p>
+      {ICONS[variant]}
+      <AlertTitle>{TITLES[variant]}</AlertTitle>
+      <AlertDescription>{message}</AlertDescription>
+    </Alert>
   );
 }

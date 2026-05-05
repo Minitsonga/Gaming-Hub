@@ -2,8 +2,20 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FeedbackMessage } from "../../components/feedback-message";
 import { useAppPreferences } from "../../components/app-preferences";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type RegisterResponse = {
   data?: {
@@ -94,12 +106,12 @@ function mapServerErrorToFields(message: string): RegisterFieldErrors {
 }
 
 export default function RegisterPage() {
+  const router = useRouter();
   const { t } = useAppPreferences();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<RegisterFieldErrors>(EMPTY_FIELD_ERRORS);
 
@@ -143,7 +155,6 @@ export default function RegisterPage() {
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
-    setSuccess(null);
     setError(null);
     const localValidationErrors = validateRegisterForm(username, email, password);
     setFieldErrors(localValidationErrors);
@@ -188,12 +199,12 @@ export default function RegisterPage() {
       localStorage.setItem("accessToken", result.token);
       localStorage.setItem("refreshToken", result.refreshToken);
       localStorage.setItem("user", JSON.stringify(result.user));
-
-      setSuccess(t("Account created successfully.", "Compte cree avec succes."));
-      setUsername("");
-      setEmail("");
-      setPassword("");
-      setFieldErrors(EMPTY_FIELD_ERRORS);
+      const nextPath = new URLSearchParams(window.location.search).get("next");
+      if (nextPath && nextPath.startsWith("/")) {
+        router.replace(nextPath);
+      } else {
+        router.replace("/protected");
+      }
     } catch {
       setError(t("Unable to reach the server.", "Impossible de contacter le serveur."));
     } finally {
@@ -202,95 +213,106 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen w-full max-w-md flex-col justify-center p-6">
-      <h1 className="mb-6 text-2xl font-semibold">{t("Create an account", "Creer un compte")}</h1>
+    <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-start px-6 py-8 sm:justify-center sm:py-12">
+      <Card className="border-sky-300/20 bg-slate-950/60 shadow-[0_10px_30px_rgba(0,0,0,0.42)]">
+        <CardHeader>
+          <CardTitle className="space-etched text-2xl">{t("Create an account", "Creer un compte")}</CardTitle>
+          <CardDescription>
+            {t("Choose a username, email and password.", "Choisissez un nom d'utilisateur, un email et un mot de passe.")}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <form className="space-y-4" onSubmit={onSubmit}>
+            <div className="space-y-2">
+              <Label htmlFor="register-username">{t("Username", "Nom d'utilisateur")}</Label>
+              <Input
+                id="register-username"
+                required
+                minLength={3}
+                value={username}
+                aria-invalid={Boolean(fieldErrors.username)}
+                onChange={(event) => {
+                  setUsername(event.target.value);
+                  if (fieldErrors.username) {
+                    setFieldErrors((previousErrors) => ({ ...previousErrors, username: null }));
+                  }
+                }}
+              />
+              {fieldErrors.username ? (
+                <p className="text-sm text-destructive" role="alert">
+                  {fieldErrors.username}
+                </p>
+              ) : null}
+            </div>
 
-      <form className="flex flex-col gap-4" onSubmit={onSubmit}>
-        <label className="flex flex-col gap-1">
-          <span className="text-sm">{t("Username", "Nom d'utilisateur")}</span>
-          <input
-            required
-            minLength={3}
-            className="rounded border px-3 py-2 focus-visible:outline-2 focus-visible:outline-offset-2"
-            value={username}
-            onChange={(event) => {
-              setUsername(event.target.value);
-              if (fieldErrors.username) {
-                setFieldErrors((previousErrors) => ({ ...previousErrors, username: null }));
-              }
-            }}
-          />
-          {fieldErrors.username ? (
-            <span className="text-sm text-red-600" role="alert">
-              {fieldErrors.username}
-            </span>
-          ) : null}
-        </label>
+            <div className="space-y-2">
+              <Label htmlFor="register-email">{t("Email", "Email")}</Label>
+              <Input
+                id="register-email"
+                required
+                type="email"
+                value={email}
+                aria-invalid={Boolean(fieldErrors.email)}
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  if (fieldErrors.email) {
+                    setFieldErrors((previousErrors) => ({ ...previousErrors, email: null }));
+                  }
+                }}
+              />
+              {fieldErrors.email ? (
+                <p className="text-sm text-destructive" role="alert">
+                  {fieldErrors.email}
+                </p>
+              ) : null}
+            </div>
 
-        <label className="flex flex-col gap-1">
-          <span className="text-sm">{t("Email", "Email")}</span>
-          <input
-            required
-            type="email"
-            className="rounded border px-3 py-2 focus-visible:outline-2 focus-visible:outline-offset-2"
-            value={email}
-            onChange={(event) => {
-              setEmail(event.target.value);
-              if (fieldErrors.email) {
-                setFieldErrors((previousErrors) => ({ ...previousErrors, email: null }));
-              }
-            }}
-          />
-          {fieldErrors.email ? (
-            <span className="text-sm text-red-600" role="alert">
-              {fieldErrors.email}
-            </span>
-          ) : null}
-        </label>
+            <div className="space-y-2">
+              <Label htmlFor="register-password">{t("Password", "Mot de passe")}</Label>
+              <Input
+                id="register-password"
+                required
+                type="password"
+                minLength={6}
+                value={password}
+                aria-invalid={Boolean(fieldErrors.password)}
+                onChange={(event) => {
+                  setPassword(event.target.value);
+                  if (fieldErrors.password) {
+                    setFieldErrors((previousErrors) => ({ ...previousErrors, password: null }));
+                  }
+                }}
+              />
+              {fieldErrors.password ? (
+                <p className="text-sm text-destructive" role="alert">
+                  {fieldErrors.password}
+                </p>
+              ) : null}
+            </div>
 
-        <label className="flex flex-col gap-1">
-          <span className="text-sm">{t("Password", "Mot de passe")}</span>
-          <input
-            required
-            type="password"
-            minLength={6}
-            className="rounded border px-3 py-2 focus-visible:outline-2 focus-visible:outline-offset-2"
-            value={password}
-            onChange={(event) => {
-              setPassword(event.target.value);
-              if (fieldErrors.password) {
-                setFieldErrors((previousErrors) => ({ ...previousErrors, password: null }));
-              }
-            }}
-          />
-          {fieldErrors.password ? (
-            <span className="text-sm text-red-600" role="alert">
-              {fieldErrors.password}
-            </span>
-          ) : null}
-        </label>
+            <Button
+              className="w-full"
+              type="submit"
+              disabled={loading}
+              aria-label={t("Submit registration form", "Soumettre le formulaire d'inscription")}
+            >
+              {loading
+                ? t("Creating account...", "Creation du compte...")
+                : t("Register", "Inscription")}
+            </Button>
+          </form>
 
-        <button
-          disabled={loading}
-          className="rounded bg-black px-4 py-2 text-white disabled:opacity-50 dark:bg-zinc-200 dark:text-black"
-          type="submit"
-          aria-label={t("Submit registration form", "Soumettre le formulaire d'inscription")}
-        >
-          {loading
-            ? t("Creating account...", "Creation du compte...")
-            : t("Register", "Inscription")}
-        </button>
-      </form>
-
-      {error ? <FeedbackMessage variant="error" message={error} /> : null}
-      {success ? <FeedbackMessage variant="success" message={success} /> : null}
-
-      <p className="mt-6 text-sm">
-        {t("Already registered?", "Deja inscrit ?")}{" "}
-        <Link className="underline" href="/">
-          {t("Go back home", "Retour a l'accueil")}
-        </Link>
-      </p>
+          {error ? <FeedbackMessage variant="error" message={error} /> : null}
+        </CardContent>
+        <CardFooter className="flex flex-col gap-2 border-t border-sky-300/15 text-sm text-muted-foreground">
+          <p>
+            {t("Already registered?", "Deja inscrit ?")}{" "}
+            <Link className="font-medium text-primary underline-offset-4 hover:underline" href="/">
+              {t("Go back home", "Retour a l'accueil")}
+            </Link>
+          </p>
+        </CardFooter>
+      </Card>
     </main>
   );
 }

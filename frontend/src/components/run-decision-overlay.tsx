@@ -1,5 +1,8 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+
 type RunDecisionOverlayProps = {
   title: string;
   description: string;
@@ -16,25 +19,30 @@ export function RunDecisionOverlay({ title, description, choices, onSelect, onCl
       aria-label="Run decision overlay"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
     >
-      <div className="w-full max-w-xl rounded-lg bg-white p-5 dark:bg-zinc-900">
-        <h2 className="text-xl font-semibold">{title}</h2>
-        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-300">{description}</p>
-        <div className="mt-4 grid grid-cols-1 gap-2">
+      <Card className="w-full max-w-xl">
+        <CardHeader>
+          <CardTitle className="text-xl">{title}</CardTitle>
+          <p className="text-sm text-muted-foreground">{description}</p>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 gap-2">
           {choices.map((choice) => (
-            <button
+            <Button
               key={choice}
               type="button"
-              className="rounded border px-3 py-2 text-left hover:bg-zinc-100 dark:hover:bg-zinc-800"
+              variant="outline"
+              className="h-auto justify-start py-2 text-left"
               onClick={() => onSelect(choice)}
             >
               {choice}
-            </button>
+            </Button>
           ))}
-        </div>
-        <button type="button" className="mt-4 rounded border px-3 py-1" onClick={onClose}>
-          Close
-        </button>
-      </div>
+        </CardContent>
+        <CardFooter>
+          <Button type="button" variant="ghost" onClick={onClose}>
+            Close
+          </Button>
+        </CardFooter>
+      </Card>
     </div>
   );
 }
