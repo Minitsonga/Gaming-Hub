@@ -2,6 +2,8 @@
 
 Document de référence pour brancher un build WebGL (Unity ou autre) sur le hub : routes, variables d’environnement, contrat `postMessage`, et API GraphQL réellement exposée par le gateway.
 
+**Voir aussi** : [BRIDGE_UNITY.md](./BRIDGE_UNITY.md) — contrat détaillé `GameBridge` (messages `RUN_ENDED`, `DRAW_SKILLS`, skills, format MongoDB). Build statique sous `frontend/public/games/<slug>/`.
+
 ---
 
 ## 1. Où en est le projet (synthèse)
@@ -35,8 +37,8 @@ Document de référence pour brancher un build WebGL (Unity ou autre) sur le hub
 
 ### A. **`/play/[slug]`** (reOMMANDÉ pour coller au Gateway actuel)
 
-- **URL iframe** : `{NEXT_PUBLIC_GAME_HOST_URL}/{slug}`  
-  Exemple : `http://localhost:8080/mon-jeu` si le build WebGL est servi à la racine par slug.
+- **URL iframe** : `{NEXT_PUBLIC_GAME_HOST_URL}/{slug}/index.html`  
+  Exemple : `http://localhost:3000/games/roguesurvival/index.html` — build dans `frontend/public/games/roguesurvival/` (le fichier explicite évite le conflit avec `/games/[id]`).
 - **Persistance** : via GraphQL `mySave` / `upsertSave` (roguelike subgraph), déclenchée depuis le front (boutons de test ou ton propre flux). Après chargement de l’iframe, le parent envoie **`LOAD_SAVE`** avec le payload issu du hub (voir §4).
 - **Scores / leaderboard** : `upsertPlayerMetric` + `gameLeaderboard` (analytics), comme dans `leaderboard-client.ts`.
 
@@ -51,7 +53,7 @@ Document de référence pour brancher un build WebGL (Unity ou autre) sur le hub
 
 ## 3. Variables d’environnement (frontend)
 
-Fichier `frontend/.env.example` (étendre localement) :
+Fichier `frontend/.env.local` (voir aussi `Setup_env.md` à la racine du monorepo) :
 
 | Variable | Rôle |
 |----------|------|

@@ -34,13 +34,17 @@ function readStoredTheme(): Theme {
 }
 
 export function AppPreferencesProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguage] = useState<Language>(() => {
-    if (typeof window === "undefined") return "en";
+  // Valeurs par défaut identiques serveur + premier rendu client (évite hydration mismatch).
+  const [language, setLanguage] = useState<Language>("en");
+  const [mode, setMode] = useState<ColorMode>("dark");
+  const [theme, setTheme] = useState<Theme>("core");
+
+  useEffect(() => {
     const savedLanguage = localStorage.getItem("language");
-    return savedLanguage === "fr" ? "fr" : "en";
-  });
-  const [mode, setMode] = useState<ColorMode>(() => readStoredMode());
-  const [theme, setTheme] = useState<Theme>(() => readStoredTheme());
+    if (savedLanguage === "fr") setLanguage("fr");
+    setMode(readStoredMode());
+    setTheme(readStoredTheme());
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("language", language);

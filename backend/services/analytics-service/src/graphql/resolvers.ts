@@ -1,10 +1,12 @@
 import { PlayerStatsService } from '../services/playerStats.service';
 import { RankingsService } from '../services/rankings.service';
+import { RunScoresService } from '../services/runScores.service';
 import { requireAuth, requireIngestAccess } from '../middleware/auth.middleware';
 import type { GraphQLContext } from '../middleware/auth.middleware';
 
 const playerStatsService = new PlayerStatsService();
 const rankingsService = new RankingsService();
+const runScoresService = new RunScoresService();
 
 function metricsRecordToList(metrics: Record<string, number>) {
   return Object.entries(metrics ?? {}).map(([key, value]) => ({ key, value }));
@@ -35,6 +37,27 @@ export const resolvers = {
       _: unknown,
       { gameSlug, metric, limit }: { gameSlug: string; metric?: string; limit?: number }
     ) => rankingsService.gameLeaderboard(gameSlug, metric ?? 'playtimeMinutes', limit ?? 10),
+    gameRunLeaderboard: (
+      _: unknown,
+      {
+        gameSlug,
+        sortBy,
+        limit,
+      }: { gameSlug: string; sortBy?: 'SCORE' | 'TIME'; limit?: number },
+      context: GraphQLContext
+    ) => {
+      const viewerId = context.user?.id ?? null;
+      return runScoresService.gameRunLeaderboard(
+        gameSlug,
+        sortBy ?? 'SCORE',
+        viewerId,
+        limit ?? 10
+      );
+    },
+    myGameRecords: (_: unknown, __: unknown, context: GraphQLContext) => {
+      const user = requireAuth(context);
+      return runScoresService.myGameRecords(user.id);
+    },
   },
   Mutation: {
     recordGameplayStats: (_: unknown, { input }: { input: any }, context: GraphQLContext) => {
@@ -53,6 +76,10 @@ export const resolvers = {
     upsertPlayerMetric: (_: unknown, { input }: { input: any }, context: GraphQLContext) => {
       requireIngestAccess(context, input.userId);
       return playerStatsService.upsertPlayerMetric(input);
+    },
+    recordRunScore: (_: unknown, { input }: { input: any }, context: GraphQLContext) => {
+      const user = requireAuth(context);
+      return runScoresService.recordRunScore(user.id, input);
     },
   },
 };

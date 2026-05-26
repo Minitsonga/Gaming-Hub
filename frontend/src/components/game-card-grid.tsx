@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { CatalogGame } from "../types/catalog";
 import { useAppPreferences } from "./app-preferences";
+import { GameThumbnail } from "./game-thumbnail";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { Star } from "lucide-react";
+import { isRoguesurvivalSlug, roguesurvivalFeatured } from "@/lib/roguesurvival-featured";
+import { canLaunchGame } from "@/components/game-detail-view";
 
 type GameCardGridProps = {
   games: CatalogGame[];
@@ -23,8 +25,8 @@ export function GameCardGrid({ games }: GameCardGridProps) {
   }
 
   function getPlaceholderMetrics(game: CatalogGame) {
-    if (game.slug.toLowerCase().includes("rogue")) {
-      return { rating: 4.8, totalHours: 1842 };
+    if (isRoguesurvivalSlug(game.slug)) {
+      return { rating: roguesurvivalFeatured.rating, totalHours: roguesurvivalFeatured.totalHours };
     }
     return { rating: 4.5, totalHours: 760 };
   }
@@ -37,12 +39,9 @@ export function GameCardGrid({ games }: GameCardGridProps) {
           <li key={game.id}>
             <Card className="h-full overflow-hidden border-sky-300/20 bg-slate-950/62 pt-0 transition-shadow hover:border-sky-300/45 hover:shadow-[0_10px_28px_rgba(0,0,0,0.45)]">
               <div className="relative aspect-video w-full bg-slate-900/60">
-                <Image
+                <GameThumbnail
                   src={game.thumbnailUrl}
                   alt={`${game.title} thumbnail`}
-                  className="object-cover"
-                  fill
-                  sizes="(max-width: 768px) 100vw, 33vw"
                 />
               </div>
               <CardHeader className="pb-2">
@@ -78,10 +77,17 @@ export function GameCardGrid({ games }: GameCardGridProps) {
                   ))}
                 </div>
               </CardContent>
-              <CardFooter className="border-t border-sky-300/15 bg-slate-950/55 pt-3">
-                <Link href={`/games/${game.id}`} className={cn(buttonVariants({ variant: "link" }), "h-auto p-0")}>
-                  {t("View details", "Voir details")}
-                </Link>
+              <CardFooter className="flex flex-wrap gap-3 border-t border-sky-300/15 bg-slate-950/55 pt-3">
+                {!game.id.startsWith("featured-") ? (
+                  <Link href={`/games/${game.id}`} className={cn(buttonVariants({ variant: "link" }), "h-auto p-0")}>
+                    {t("View details", "Voir details")}
+                  </Link>
+                ) : null}
+                {isRoguesurvivalSlug(game.slug) || canLaunchGame(game.status) ? (
+                  <Link href={`/play/${game.slug}`} className={cn(buttonVariants({ variant: "link" }), "h-auto p-0")}>
+                    {t("Play now", "Jouer")}
+                  </Link>
+                ) : null}
               </CardFooter>
             </Card>
           </li>

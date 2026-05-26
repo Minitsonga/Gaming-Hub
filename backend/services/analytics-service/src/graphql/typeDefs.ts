@@ -33,6 +33,60 @@ export const typeDefs = gql`
     metric: String!
   }
 
+  enum LeaderboardSortBy {
+    SCORE
+    TIME
+  }
+
+  type GameRunRankedEntry {
+    id: ID!
+    userId: ID!
+    playerName: String!
+    gameSlug: String!
+    score: Int!
+    runDurationSeconds: Float!
+    rank: Int!
+    isViewer: Boolean!
+  }
+
+  type GameRunLeaderboardPayload {
+    sortBy: LeaderboardSortBy!
+    top: [GameRunRankedEntry!]!
+    viewer: GameRunRankedEntry
+    totalPlayers: Int!
+  }
+
+  type GameRunRankSnapshot {
+    score: Int
+    time: Int
+  }
+
+  type MyGameRecordEntry {
+    gameSlug: String!
+    playerName: String!
+    bestScore: Int!
+    bestScoreDuration: Float!
+    bestTimeDuration: Float!
+    bestTimeScore: Int!
+    rankScore: Int
+    rankTime: Int
+  }
+
+  input RecordRunScoreInput {
+    gameSlug: String!
+    playerName: String!
+    score: Int!
+    runDurationSeconds: Float!
+  }
+
+  type RecordRunScorePayload {
+    run: GameRunRankedEntry!
+    scoreImproved: Boolean!
+    timeImproved: Boolean!
+    personalBestImproved: Boolean!
+    ranks: GameRunRankSnapshot!
+  }
+
   extend type User @key(fields: "id") {
     id: ID! @external
     profileStats(limit: Int = 20): [PlayerGameStats!]!
@@ -69,10 +123,17 @@ export const typeDefs = gql`
       metric: String = "playtimeMinutes"
       limit: Int = 10
     ): [PlayerLeaderboardEntry!]!
+    gameRunLeaderboard(
+      gameSlug: String!
+      sortBy: LeaderboardSortBy = SCORE
+      limit: Int = 10
+    ): GameRunLeaderboardPayload!
+    myGameRecords: [MyGameRecordEntry!]!
   }
 
   type Mutation {
     recordGameplayStats(input: RecordGameplayStatsInput!): PlayerGameStats!
     upsertPlayerMetric(input: UpsertPlayerMetricInput!): PlayerGameStats!
+    recordRunScore(input: RecordRunScoreInput!): RecordRunScorePayload!
   }
 `;

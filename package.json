@@ -26,7 +26,8 @@
     "load-test:load": "k6 run load-tests/load.js",
     "load-test:stress": "k6 run load-tests/stress.js",
     "health:smoke": "node scripts/health-smoke.mjs",
-    "reliability:check": "node scripts/reliability-check.mjs"
+    "reliability:check": "node scripts/reliability-check.mjs",
+    "deploy:webgl": "node scripts/deploy-unity-webgl.mjs"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.0.0",

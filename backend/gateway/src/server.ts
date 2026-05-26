@@ -1,10 +1,35 @@
-import 'dotenv/config';
+import path from 'path';
+import { existsSync } from 'fs';
+import { config } from 'dotenv';
+
+for (const envPath of [
+  path.resolve(__dirname, '../../.env'),
+  path.resolve(__dirname, '../.env'),
+]) {
+  if (existsSync(envPath)) config({ path: envPath, override: false });
+}
 import express from 'express';
 import cors, { type CorsOptions } from 'cors';
 import helmet from 'helmet';
 import { ApolloServer } from '@apollo/server';
-import { ApolloGateway, IntrospectAndCompose } from '@apollo/gateway';
+import { ApolloGateway, IntrospectAndCompose, RemoteGraphQLDataSource } from '@apollo/gateway';
 import { expressMiddleware } from '@as-integrations/express5';
+
+type GatewayContext = { authorization?: string };
+
+class AuthenticatedDataSource extends RemoteGraphQLDataSource<GatewayContext> {
+  override willSendRequest({
+    request,
+    context,
+  }: {
+    request: { http?: { headers: { set: (key: string, value: string) => void } } };
+    context: GatewayContext;
+  }): void {
+    if (context.authorization && request.http) {
+      request.http.headers.set('authorization', context.authorization);
+    }
+  }
+}
 
 const PORT = Number(process.env.PORT ?? 4000);
 const AUTH_SUBGRAPH_URL = process.env.AUTH_SUBGRAPH_URL ?? 'http://localhost:4001/graphql';
@@ -41,6 +66,9 @@ async function start() {
         { name: 'analytics', url: ANALYTICS_SUBGRAPH_URL },
       ],
     }),
+    buildService({ url }) {
+      return new AuthenticatedDataSource({ url });
+    },
   });
 
   const server = new ApolloServer({
@@ -54,7 +82,15 @@ async function start() {
   app.use(cors(corsOptions));
   app.options(/.*/, cors(corsOptions));
   app.use(express.json());
-  app.use('/graphql', expressMiddleware(server));
+  app.use(
+    '/graphql',
+    expressMiddleware(server, {
+      context: async ({ req }) => ({
+        authorization:
+          typeof req.headers.authorization === 'string' ? req.headers.authorization : undefined,
+      }),
+    })
+  );
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok', service: 'gateway' });
   });

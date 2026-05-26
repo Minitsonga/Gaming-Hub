@@ -1,6 +1,6 @@
-# Gaming Hub - stack complète (Docker Desktop)
-# À la racine du repo : docker compose up --build
-# Déploiement : sur le serveur, lancer cette stack (docker compose up -d) pour démarrer tous les services.
+# Gaming Hub — stack sans Mongo local (env par service, voir Setup_env.md à la racine du monorepo)
+# Prérequis : fichiers backend/services/*/.env et backend/gateway/.env
+# docker compose up --build -d
 
 services:
   auth-service:
@@ -10,11 +10,12 @@ services:
     container_name: gaming-hub-auth
     ports:
       - "4001:4001"
+    env_file:
+      - backend/services/auth-service/.env
     environment:
       NODE_ENV: production
       PORT: 4001
-    env_file:
-      - backend/services/auth-service/.env
+      CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
     networks:
       - gaming-hub
 
@@ -25,29 +26,12 @@ services:
     container_name: gaming-hub-catalog
     ports:
       - "4002:4002"
+    env_file:
+      - backend/services/catalog-service/.env
     environment:
       NODE_ENV: production
       PORT: 4002
-    env_file:
-      - backend/services/catalog-service/.env
-    networks:
-      - gaming-hub
-
-  roguelike-service:
-    build:
-      context: .
-      dockerfile: backend/services/roguelike-service/Dockerfile
-    container_name: gaming-hub-roguelike
-    ports:
-      - "4003:4003"
-    environment:
-      NODE_ENV: production
-      PORT: 4003
-      ANALYTICS_GRAPHQL_URL: http://analytics-service:4004/graphql
-    env_file:
-      - backend/services/roguelike-service/.env
-    depends_on:
-      - analytics-service
+      CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
     networks:
       - gaming-hub
 
@@ -58,11 +42,31 @@ services:
     container_name: gaming-hub-analytics
     ports:
       - "4004:4004"
+    env_file:
+      - backend/services/analytics-service/.env
     environment:
       NODE_ENV: production
       PORT: 4004
+      CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
+    networks:
+      - gaming-hub
+
+  roguelike-service:
+    build:
+      context: .
+      dockerfile: backend/services/roguelike-service/Dockerfile
+    container_name: gaming-hub-roguelike
+    ports:
+      - "4003:4003"
     env_file:
-      - backend/services/analytics-service/.env
+      - backend/services/roguelike-service/.env
+    environment:
+      NODE_ENV: production
+      PORT: 4003
+      ANALYTICS_GRAPHQL_URL: http://analytics-service:4004/graphql
+      CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
+    depends_on:
+      - analytics-service
     networks:
       - gaming-hub
 
@@ -73,6 +77,8 @@ services:
     container_name: gaming-hub-gateway
     ports:
       - "4000:4000"
+    env_file:
+      - backend/gateway/.env
     environment:
       NODE_ENV: production
       PORT: 4000
@@ -80,13 +86,27 @@ services:
       CATALOG_SUBGRAPH_URL: http://catalog-service:4002/graphql
       ROGUELIKE_SUBGRAPH_URL: http://roguelike-service:4003/graphql
       ANALYTICS_SUBGRAPH_URL: http://analytics-service:4004/graphql
-    env_file:
-      - backend/gateway/.env
+      CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
     depends_on:
       - auth-service
       - catalog-service
       - roguelike-service
       - analytics-service
+    networks:
+      - gaming-hub
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+      args:
+        NEXT_PUBLIC_GRAPHQL_URL: http://localhost:4000/graphql
+        NEXT_PUBLIC_GAME_HOST_URL: http://localhost:3000/games
+    container_name: gaming-hub-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - gateway
     networks:
       - gaming-hub
 

@@ -13,7 +13,6 @@ backend/**/dist/
 # Env (injectées via compose env_file sur l’hôte, pas dans l’image)
 .env
 .env.*
-!.env.example
 
 # CI / IDE / OS
 .github/

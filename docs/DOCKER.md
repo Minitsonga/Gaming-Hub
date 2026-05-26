@@ -8,13 +8,12 @@
 docker compose up --build
 ```
 
+- **Frontend** : http://localhost:3000  
 - **Gateway** : http://localhost:4000/graphql  
 - **Auth** : 4001, **Catalog** : 4002, **Roguelike** : 4003, **Analytics** : 4004  
-- **MongoDB** : localhost:27017 (base `gaming-hub`)
-
 En arrière-plan : `docker compose up -d --build`.
 
-Les variables (dont `MONGO_URI`) sont prises depuis les fichiers `.env` de chaque service ; le compose écrase `MONGO_URI` pour pointer vers le conteneur `mongodb`. Pense à avoir des `.env` dans chaque service (ou à définir les secrets dans le compose / un env de déploiement).
+**MongoDB** : aucune image Mongo dans le compose. Les **`backend/services/*/.env`** doivent exister (voir `Setup_env.md` à la racine du monorepo). Voir [ENV.md](ENV.md).
 
 ---
 
@@ -29,12 +28,9 @@ Exemple – seulement auth (avec un MongoDB déjà dispo) :
 docker build -f backend/services/auth-service/Dockerfile -t gaming-hub-auth .
 
 docker run --name auth -p 4001:4001 \
-  -e MONGO_URI=mongodb://host.docker.internal:27017/gaming-hub \
-  -e JWT_SECRET=secret \
+  --env-file backend/.env \
   gaming-hub-auth
 ```
-
-Sur Linux, pour accéder au MongoDB de l’hôte : `-e MONGO_URI=mongodb://172.17.0.1:27017/gaming-hub` (ou le IP de la machine).
 
 ---
 
@@ -44,7 +40,7 @@ Sur la machine qui héberge tout :
 
 1. Cloner le repo, placer les `.env` (ou configurer les variables d’environnement).
 2. Lancer la stack : `docker compose up -d --build`.
-3. Un seul serveur exécute ainsi tous les services (gateway + 4 subgraphs + MongoDB).
+3. Un seul serveur exécute ainsi tous les services (gateway + 4 subgraphs) ; MongoDB reste sur ton cluster (Atlas).
 
 Pour exposer uniquement le gateway en public, n’ouvrir que le port 4000 en entrée et laisser les autres ports en interne au réseau Docker.
 

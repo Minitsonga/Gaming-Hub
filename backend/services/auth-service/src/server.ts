@@ -1,4 +1,13 @@
-import 'dotenv/config';
+import path from 'path';
+import { existsSync } from 'fs';
+import { config } from 'dotenv';
+
+for (const envPath of [
+  path.resolve(__dirname, '../../../.env'),
+  path.resolve(__dirname, '../.env'),
+]) {
+  if (existsSync(envPath)) config({ path: envPath, override: true });
+}
 import express from 'express';
 import cors, { type CorsOptions } from 'cors';
 import helmet from 'helmet';

@@ -97,6 +97,7 @@ export function LoginForm() {
       localStorage.setItem("accessToken", result.token);
       localStorage.setItem("refreshToken", result.refreshToken);
       localStorage.setItem("user", JSON.stringify(result.user));
+      window.dispatchEvent(new Event("gaming-hub-auth"));
       if (nextPath && nextPath.startsWith("/")) {
         router.push(nextPath);
       } else {

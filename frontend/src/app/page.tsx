@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Star } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Star } from "lucide-react";
+import { GameCarousel, gameCarouselItemClassName } from "../components/game-carousel";
 import { useAppPreferences } from "../components/app-preferences";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -13,7 +14,11 @@ import {
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { fetchCatalogGames } from "@/lib/catalog-client";
-import type { CatalogGame } from "@/types/catalog";
+import {
+  getGameCardHref,
+  roguesurvivalFeatured,
+  ROGUESURVIVAL_SLUG,
+} from "@/lib/roguesurvival-featured";
 
 type HeroGame = {
   id: string;
@@ -27,13 +32,13 @@ type HeroGame = {
 
 const placeholderGames: HeroGame[] = [
   {
-    id: "ph-roguelike",
-    slug: "roguelike-arena",
-    title: "ROGUELIKE ARENA",
-    description: "Fast paced runs, procedural maps, and brutal boss loops.",
-    rating: 4.8,
-    totalHours: 1842,
-    tags: ["ROGUELIKE", "ACTION"],
+    id: roguesurvivalFeatured.id,
+    slug: roguesurvivalFeatured.slug,
+    title: roguesurvivalFeatured.title,
+    description: roguesurvivalFeatured.description,
+    rating: roguesurvivalFeatured.rating,
+    totalHours: roguesurvivalFeatured.totalHours,
+    tags: [...roguesurvivalFeatured.tags],
   },
   {
     id: "ph-rpg",
@@ -68,9 +73,6 @@ export default function Home() {
   const { t } = useAppPreferences();
   const [games, setGames] = useState<HeroGame[]>([]);
   const [loadingGames, setLoadingGames] = useState(true);
-  const recentRef = useRef<HTMLDivElement | null>(null);
-  const topRef = useRef<HTMLDivElement | null>(null);
-
   useEffect(() => {
     let cancelled = false;
     async function loadRecent() {
@@ -86,7 +88,25 @@ export default function Home() {
             totalHours: 2100 - index * 170,
             tags: (game.tags.length ? game.tags : ["ACTION"]).slice(0, 2).map((tag) => tag.toUpperCase()),
           }));
-          setGames(mapped.length >= 4 ? mapped : placeholderGames);
+          const fromApi = mapped.filter((g) => g.slug !== ROGUESURVIVAL_SLUG);
+          const featured: HeroGame = {
+            id: roguesurvivalFeatured.id,
+            slug: roguesurvivalFeatured.slug,
+            title: roguesurvivalFeatured.title,
+            description: roguesurvivalFeatured.description,
+            rating: roguesurvivalFeatured.rating,
+            totalHours: roguesurvivalFeatured.totalHours,
+            tags: [...roguesurvivalFeatured.tags],
+          };
+          const apiRoguesurvival = mapped.find((g) => g.slug === ROGUESURVIVAL_SLUG);
+          if (apiRoguesurvival) {
+            featured.id = apiRoguesurvival.id;
+            featured.title = apiRoguesurvival.title;
+            featured.description = apiRoguesurvival.description;
+            featured.tags = apiRoguesurvival.tags;
+          }
+          const merged = [featured, ...fromApi];
+          setGames(merged.length >= 4 ? merged.slice(0, 8) : placeholderGames);
         }
       } catch {
         if (!cancelled) setGames(placeholderGames);
@@ -106,15 +126,8 @@ export default function Home() {
     [games]
   );
 
-  function scrollCarousel(target: "recent" | "top", direction: "left" | "right") {
-    const ref = target === "recent" ? recentRef.current : topRef.current;
-    if (!ref) return;
-    const amount = Math.round(ref.clientWidth * 0.72) * (direction === "left" ? -1 : 1);
-    ref.scrollBy({ left: amount, behavior: "smooth" });
-  }
-
   return (
-    <main className="relative flex flex-1 flex-col overflow-hidden">
+    <main className="relative flex flex-1 flex-col">
       <div className="relative mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-6 py-12">
         <section className="relative flex flex-col items-center space-y-4 py-6">
           <p className="space-subtitle max-w-2xl text-center text-sm sm:text-base">
@@ -137,37 +150,17 @@ export default function Home() {
           {loadingGames ? (
             <p className="text-sm text-muted-foreground">{t("Loading games...", "Chargement des jeux...")}</p>
           ) : (
-            <div className="relative">
-              <Button
-                type="button"
-                size="icon-sm"
-                variant="outline"
-                onClick={() => scrollCarousel("recent", "left")}
-                aria-label="Scroll recent games left"
-                className="carousel-arrow absolute left-0 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2"
-              >
-                <ChevronLeft className="size-4" />
-              </Button>
-              <Button
-                type="button"
-                size="icon-sm"
-                variant="outline"
-                onClick={() => scrollCarousel("recent", "right")}
-                aria-label="Scroll recent games right"
-                className="carousel-arrow absolute right-0 top-1/2 z-10 translate-x-1/2 -translate-y-1/2"
-              >
-                <ChevronRight className="size-4" />
-              </Button>
-              <div
-                ref={recentRef}
-                className="no-scrollbar flex snap-x gap-4 overflow-x-auto pb-2 [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]"
-              >
-                {recentGames.map((game) => (
-                  <Link
-                    key={game.id}
-                    href={`/games/${game.id}`}
-                    className="min-w-[280px] snap-start rounded-xl border border-sky-300/20 bg-gradient-to-b from-slate-950/90 to-slate-900/60 p-4 shadow-[0_10px_30px_rgba(0,0,0,0.45)] hover:border-sky-300/50"
-                  >
+            <GameCarousel ariaLabel={t("Recently added games", "Jeux ajoutes recemment")}>
+              {recentGames.map((game) => (
+                <Link
+                  key={game.id}
+                  href={getGameCardHref(game)}
+                  data-carousel-item
+                  className={cn(
+                    gameCarouselItemClassName(),
+                    "rounded-xl border border-sky-300/20 bg-gradient-to-b from-slate-950/90 to-slate-900/60 p-4 shadow-[0_10px_30px_rgba(0,0,0,0.45)] transition-colors hover:border-sky-300/50"
+                  )}
+                >
                     <p className="font-semibold">{game.title}</p>
                     <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{game.description}</p>
                     <div className="mt-3 flex items-center gap-3 text-xs text-muted-foreground">
@@ -184,10 +177,9 @@ export default function Home() {
                         </span>
                       ))}
                     </div>
-                  </Link>
-                ))}
-              </div>
-            </div>
+                </Link>
+              ))}
+            </GameCarousel>
           )}
         </section>
 
@@ -195,45 +187,28 @@ export default function Home() {
           <div className="flex items-center justify-between">
             <h2 className="space-etched text-xl font-semibold">{t("Top games", "Top games")}</h2>
           </div>
-          <div className="relative">
-            <Button
-              type="button"
-              size="icon-sm"
-              variant="outline"
-              onClick={() => scrollCarousel("top", "left")}
-              aria-label="Scroll top games left"
-              className="carousel-arrow absolute left-0 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2"
-            >
-              <ChevronLeft className="size-4" />
-            </Button>
-            <Button
-              type="button"
-              size="icon-sm"
-              variant="outline"
-              onClick={() => scrollCarousel("top", "right")}
-              aria-label="Scroll top games right"
-              className="carousel-arrow absolute right-0 top-1/2 z-10 translate-x-1/2 -translate-y-1/2"
-            >
-              <ChevronRight className="size-4" />
-            </Button>
-            <div
-              ref={topRef}
-              className="no-scrollbar flex snap-x gap-4 overflow-x-auto pb-2 [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)]"
-            >
-              {topGames.map((game, index) => (
-                <Card key={`${game.id}-top`} className="min-w-[280px] snap-start border-sky-300/20 bg-slate-950/70 shadow-[0_6px_24px_rgba(0,0,0,0.35)]">
-                  <CardHeader>
-                    <CardTitle className="text-base">
-                      #{index + 1} {game.title}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-sm text-muted-foreground">
-                    {t("Rating", "Note")}: {game.rating.toFixed(1)} • {t("Total playtime", "Temps de jeu total")}: {game.totalHours}h
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
+          <GameCarousel ariaLabel={t("Top rated games", "Jeux les mieux notes")}>
+            {topGames.map((game, index) => (
+              <Card
+                key={`${game.id}-top`}
+                data-carousel-item
+                className={cn(
+                  gameCarouselItemClassName(),
+                  "border-sky-300/20 bg-slate-950/70 shadow-[0_6px_24px_rgba(0,0,0,0.35)]"
+                )}
+              >
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base leading-snug">
+                    #{index + 1} {game.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground">
+                  {t("Rating", "Note")}: {game.rating.toFixed(1)} • {t("Total playtime", "Temps de jeu total")}:{" "}
+                  {game.totalHours}h
+                </CardContent>
+              </Card>
+            ))}
+          </GameCarousel>
         </section>
 
         <div className="flex justify-center">

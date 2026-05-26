@@ -1,51 +1,169 @@
-export type LeaderboardEntry = {
+export type LeaderboardSortBy = 'SCORE' | 'TIME';
+
+export type RunLeaderboardEntry = {
+  id: string;
   userId: string;
+  playerName: string;
   gameSlug: string;
-  value: number;
-  metric: string;
+  score: number;
+  runDurationSeconds: number;
+  rank: number;
+  isViewer: boolean;
 };
 
-const SUBMIT_SCORE_MUTATION = `
-  mutation SubmitScore($input: UpsertPlayerMetricInput!) {
-    upsertPlayerMetric(input: $input) {
-      id
+export type GameRunLeaderboardPayload = {
+  sortBy: LeaderboardSortBy;
+  top: RunLeaderboardEntry[];
+  viewer: RunLeaderboardEntry | null;
+  totalPlayers: number;
+};
+
+export type MyGameRecord = {
+  gameSlug: string;
+  playerName: string;
+  bestScore: number;
+  bestScoreDuration: number;
+  bestTimeDuration: number;
+  bestTimeScore: number;
+  rankScore: number | null;
+  rankTime: number | null;
+};
+
+export const LEADERBOARD_TOP_N = 10;
+export const LEADERBOARD_REFRESH_MS = 60_000;
+
+const RECORD_RUN_SCORE_MUTATION = `
+  mutation RecordRunScore($input: RecordRunScoreInput!) {
+    recordRunScore(input: $input) {
+      scoreImproved
+      timeImproved
+      personalBestImproved
+      ranks {
+        score
+        time
+      }
+      run {
+        id
+        playerName
+        score
+        runDurationSeconds
+        rank
+      }
     }
   }
 `;
 
-const GAME_LEADERBOARD_QUERY = `
-  query GameLeaderboard($gameSlug: String!, $metric: String, $limit: Int) {
-    gameLeaderboard(gameSlug: $gameSlug, metric: $metric, limit: $limit) {
-      userId
+const GAME_RUN_LEADERBOARD_QUERY = `
+  query GameRunLeaderboard($gameSlug: String!, $sortBy: LeaderboardSortBy!, $limit: Int) {
+    gameRunLeaderboard(gameSlug: $gameSlug, sortBy: $sortBy, limit: $limit) {
+      sortBy
+      totalPlayers
+      top {
+        id
+        userId
+        playerName
+        score
+        runDurationSeconds
+        rank
+        isViewer
+      }
+      viewer {
+        id
+        userId
+        playerName
+        score
+        runDurationSeconds
+        rank
+        isViewer
+      }
+    }
+  }
+`;
+
+const MY_GAME_RECORDS_QUERY = `
+  query MyGameRecords {
+    myGameRecords {
       gameSlug
-      value
-      metric
+      playerName
+      bestScore
+      bestScoreDuration
+      bestTimeDuration
+      bestTimeScore
+      rankScore
+      rankTime
     }
   }
 `;
 
-function authHeaders() {
-  const accessToken = localStorage.getItem("accessToken");
+function getGraphqlEndpoint(): string {
+  return process.env.NEXT_PUBLIC_GRAPHQL_URL ?? 'http://localhost:4000/graphql';
+}
+
+function authHeaders(): HeadersInit {
+  const accessToken = localStorage.getItem('accessToken');
   return {
-    "Content-Type": "application/json",
-    Authorization: accessToken ? `Bearer ${accessToken}` : "",
+    'Content-Type': 'application/json',
+    Authorization: accessToken ? `Bearer ${accessToken}` : '',
   };
 }
 
-export async function submitScore(gameSlug: string, value: number): Promise<void> {
-  const endpoint = process.env.NEXT_PUBLIC_GRAPHQL_URL ?? "http://localhost:4000/graphql";
-  const user = JSON.parse(localStorage.getItem("user") ?? "{}") as { id?: string };
-  const response = await fetch(endpoint, {
-    method: "POST",
+export function getPlayerDisplayName(): string {
+  try {
+    const user = JSON.parse(localStorage.getItem('user') ?? '{}') as {
+      username?: string;
+      email?: string;
+    };
+    const name = user.username?.trim() || user.email?.trim();
+    return name || 'Joueur';
+  } catch {
+    return 'Joueur';
+  }
+}
+
+export function getStoredUserId(): string {
+  try {
+    const user = JSON.parse(localStorage.getItem('user') ?? '{}') as {
+      id?: string;
+      _id?: string;
+      userId?: string;
+    };
+    return user.id ?? user._id ?? user.userId ?? '';
+  } catch {
+    return '';
+  }
+}
+
+export function formatRunDuration(seconds: number): string {
+  const total = Math.max(0, Math.floor(seconds));
+  const mins = Math.floor(total / 60);
+  const secs = total % 60;
+  if (mins > 0) {
+    return `${mins}m ${secs.toString().padStart(2, '0')}s`;
+  }
+  return `${secs}s`;
+}
+
+export async function submitRunScore(
+  gameSlug: string,
+  score: number,
+  runDurationSeconds: number
+): Promise<void> {
+  const accessToken = localStorage.getItem('accessToken');
+  if (!accessToken) {
+    throw new Error('Authentication required');
+  }
+
+  const response = await fetch(getGraphqlEndpoint(), {
+    method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify({
-      query: SUBMIT_SCORE_MUTATION,
+      query: RECORD_RUN_SCORE_MUTATION,
       variables: {
         input: {
-          userId: user.id ?? "",
           gameSlug,
-          metric: "score",
-          value,
+          playerName: getPlayerDisplayName(),
+          score: Math.max(0, Math.floor(score)),
+          runDurationSeconds: Math.max(0, Number(runDurationSeconds) || 0),
         },
       },
     }),
@@ -53,26 +171,61 @@ export async function submitScore(gameSlug: string, value: number): Promise<void
 
   const payload = (await response.json()) as { errors?: Array<{ message: string }> };
   if (!response.ok || payload.errors?.length) {
-    throw new Error(payload.errors?.[0]?.message ?? "Unable to submit score.");
+    throw new Error(payload.errors?.[0]?.message ?? 'Unable to submit run score.');
   }
 }
 
-export async function fetchLeaderboard(gameSlug: string): Promise<LeaderboardEntry[]> {
-  const endpoint = process.env.NEXT_PUBLIC_GRAPHQL_URL ?? "http://localhost:4000/graphql";
-  const response = await fetch(endpoint, {
-    method: "POST",
+export async function fetchRunLeaderboard(
+  gameSlug: string,
+  sortBy: LeaderboardSortBy = 'SCORE',
+  limit = LEADERBOARD_TOP_N
+): Promise<GameRunLeaderboardPayload> {
+  const response = await fetch(getGraphqlEndpoint(), {
+    method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify({
-      query: GAME_LEADERBOARD_QUERY,
-      variables: { gameSlug, metric: "score", limit: 10 },
+      query: GAME_RUN_LEADERBOARD_QUERY,
+      variables: { gameSlug, sortBy, limit },
     }),
   });
+
   const payload = (await response.json()) as {
-    data?: { gameLeaderboard?: LeaderboardEntry[] };
+    data?: { gameRunLeaderboard?: GameRunLeaderboardPayload };
     errors?: Array<{ message: string }>;
   };
+
   if (!response.ok || payload.errors?.length) {
-    throw new Error(payload.errors?.[0]?.message ?? "Unable to fetch leaderboard.");
+    throw new Error(payload.errors?.[0]?.message ?? 'Unable to fetch leaderboard.');
   }
-  return payload.data?.gameLeaderboard ?? [];
+
+  return (
+    payload.data?.gameRunLeaderboard ?? {
+      sortBy,
+      top: [],
+      viewer: null,
+      totalPlayers: 0,
+    }
+  );
+}
+
+export async function fetchMyGameRecords(): Promise<MyGameRecord[]> {
+  const accessToken = localStorage.getItem('accessToken');
+  if (!accessToken) return [];
+
+  const response = await fetch(getGraphqlEndpoint(), {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ query: MY_GAME_RECORDS_QUERY }),
+  });
+
+  const payload = (await response.json()) as {
+    data?: { myGameRecords?: MyGameRecord[] };
+    errors?: Array<{ message: string }>;
+  };
+
+  if (!response.ok || payload.errors?.length) {
+    return [];
+  }
+
+  return payload.data?.myGameRecords ?? [];
 }

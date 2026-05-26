@@ -285,6 +285,23 @@ a {
   display: none;
 }
 
+/* Pastille notification — poignée panneau skills (play) */
+@keyframes skills-dock-badge-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgb(251 191 36 / 0.65);
+  }
+  50% {
+    transform: scale(1.12);
+    box-shadow: 0 0 0 6px rgb(251 191 36 / 0);
+  }
+}
+
+.skills-dock-badge--pulse {
+  animation: skills-dock-badge-pulse 1.6s ease-in-out infinite;
+}
+
 @keyframes nebula-drift {
   0% {
     transform: translate3d(0, 0, 0) scale(1);

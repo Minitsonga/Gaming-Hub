@@ -173,7 +173,11 @@ export default function RegisterPage() {
         body: JSON.stringify({
           query: REGISTER_MUTATION,
           variables: {
-            input: { username, email, password },
+            input: {
+              username: username.trim(),
+              email: email.trim(),
+              password,
+            },
           },
         }),
       });
@@ -199,6 +203,7 @@ export default function RegisterPage() {
       localStorage.setItem("accessToken", result.token);
       localStorage.setItem("refreshToken", result.refreshToken);
       localStorage.setItem("user", JSON.stringify(result.user));
+      window.dispatchEvent(new Event("gaming-hub-auth"));
       const nextPath = new URLSearchParams(window.location.search).get("next");
       if (nextPath && nextPath.startsWith("/")) {
         router.replace(nextPath);

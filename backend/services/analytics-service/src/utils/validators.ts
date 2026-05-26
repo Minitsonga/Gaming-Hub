@@ -15,3 +15,10 @@ export const UpsertPlayerMetricSchema = z.object({
   metric: z.string().min(1),
   value: z.number(),
 });
+
+export const RecordRunScoreSchema = z.object({
+  gameSlug: z.string().min(1),
+  playerName: z.string().min(1).max(64),
+  score: z.number().int().min(0),
+  runDurationSeconds: z.number().min(0),
+});

@@ -12,6 +12,7 @@ import {
   type CatalogSortBy,
   type CatalogSortOrder,
 } from "../../lib/catalog-view-model";
+import { toRoguesurvivalCatalogCard } from "@/lib/roguesurvival-featured";
 import { CatalogGame } from "../../types/catalog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -102,23 +103,12 @@ export default function CatalogPage() {
         <>
           <FeedbackMessage
             variant="info"
-            message={t("No game matches this search right now.", "Aucun jeu ne correspond a cette recherche pour le moment.")}
+            message={t(
+              "No other game matches this search. You can still play Rogue Survival.",
+              "Aucun autre jeu ne correspond a cette recherche. Tu peux quand meme jouer a Rogue Survival."
+            )}
           />
-          <Card className="border-dashed border-sky-300/20 bg-slate-950/45">
-            <CardHeader>
-              <CardTitle className="space-etched text-lg">{t("Recommended right now", "Recommande en ce moment")}</CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-lg border border-sky-300/20 bg-slate-950/55 p-3">
-                <p className="font-medium">{t("Roguelike Arena (example)", "Roguelike Arena (exemple)")}</p>
-                <p className="text-sm text-muted-foreground">{t("4.8 • 1842h total played • Action / Roguelike", "4.8 • 1842h jouees au total • Action / Roguelike")}</p>
-              </div>
-              <div className="rounded-lg border border-sky-300/20 bg-slate-950/55 p-3">
-                <p className="font-medium">{t("Neon Dungeon (example)", "Neon Dungeon (exemple)")}</p>
-                <p className="text-sm text-muted-foreground">{t("4.6 • 1260h total played • RPG / Adventure", "4.6 • 1260h jouees au total • RPG / Aventure")}</p>
-              </div>
-            </CardContent>
-          </Card>
+          <GameCardGrid games={[toRoguesurvivalCatalogCard()]} />
         </>
       ) : null}
       {!loading && !error && refinedGames.length > 0 ? <GameCardGrid games={visibleGames} /> : null}

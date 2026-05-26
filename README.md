@@ -16,6 +16,7 @@ Plateforme de jeux avec système de skills et authentification GraphQL.
 | [**Workflow Dev & Staging**](docs/WORKFLOW.md) | Branches, versioning, push / merge, PR dev → staging, publication des images |
 | [**Docker**](docs/DOCKER.md) | Lancer la stack, un service seul, déploiement, Docker Hub |
 | [**Tests de charge (k6)**](docs/LOAD_TESTS.md) | Scénarios de charge et performance |
+| [**Variables d'environnement**](docs/ENV.md) | `MONGO_URI` (Atlas), JWT, `backend/.env` |
 
 Toute la doc technique est dans [docs/](docs/).
 

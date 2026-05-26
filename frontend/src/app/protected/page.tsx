@@ -1,25 +1,22 @@
-"use client";
+'use client';
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { FeedbackMessage } from "../../components/feedback-message";
-import { useAppPreferences } from "../../components/app-preferences";
-import { Button } from "@/components/ui/button";
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+
+import { useAppPreferences } from '@/components/app-preferences';
+import { buttonVariants } from '@/components/ui/button';
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { graphqlFetch } from "@/lib/graphql-client";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { fetchCatalogGames } from "@/lib/catalog-client";
-import { loadRunSave } from "@/lib/save-client";
+} from '@/components/ui/card';
+import { fetchCatalogGames } from '@/lib/catalog-client';
+import { fetchMyGameRecords, formatRunDuration } from '@/lib/leaderboard-client';
+import type { MyGameRecord } from '@/lib/leaderboard-client';
+import { cn } from '@/lib/utils';
 
 type StoredUser = {
   id?: string;
@@ -27,34 +24,23 @@ type StoredUser = {
   email?: string;
 };
 
-type PersonalStats = {
-  savedGames: number;
-  totalRuns: number;
-  totalKills: number;
-  bestWave: number;
-};
+type GameRecordRow = MyGameRecord & { gameTitle: string };
 
-export default function ProtectedPage() {
+export default function ProfilePage() {
   const router = useRouter();
   const { t } = useAppPreferences();
-  const [logoutError, setLogoutError] = useState<string | null>(null);
   const [user, setUser] = useState<StoredUser | null>(null);
-  const [stats, setStats] = useState<PersonalStats>({
-    savedGames: 0,
-    totalRuns: 0,
-    totalKills: 0,
-    bestWave: 0,
-  });
-  const [statsLoading, setStatsLoading] = useState(true);
+  const [records, setRecords] = useState<GameRecordRow[]>([]);
+  const [loadingRecords, setLoadingRecords] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
+    const token = localStorage.getItem('accessToken');
     if (!token) {
-      router.replace("/login");
+      router.replace('/login');
       return;
     }
     try {
-      const raw = localStorage.getItem("user");
+      const raw = localStorage.getItem('user');
       setUser(raw ? (JSON.parse(raw) as StoredUser) : {});
     } catch {
       setUser({});
@@ -63,75 +49,33 @@ export default function ProtectedPage() {
 
   useEffect(() => {
     let cancelled = false;
-    async function loadPersonalStats() {
-      setStatsLoading(true);
+    async function load() {
+      setLoadingRecords(true);
       try {
-        const games = await fetchCatalogGames();
-        let savedGames = 0;
-        let totalRuns = 0;
-        let totalKills = 0;
-        let bestWave = 0;
-        for (const game of games) {
-          const save = await loadRunSave(game.slug);
-          if (!save) continue;
-          savedGames += 1;
-          const runsCompleted = Number(save.runsCompleted ?? 0);
-          const kills = Number(save.totalKills ?? 0);
-          const wave = Number(save.highestWave ?? 0);
-          totalRuns += Number.isFinite(runsCompleted) ? runsCompleted : 0;
-          totalKills += Number.isFinite(kills) ? kills : 0;
-          bestWave = Math.max(bestWave, Number.isFinite(wave) ? wave : 0);
-        }
-        if (!cancelled) {
-          setStats({ savedGames, totalRuns, totalKills, bestWave });
-        }
+        const [games, mine] = await Promise.all([fetchCatalogGames(), fetchMyGameRecords()]);
+        const titleBySlug = new Map(games.map((g) => [g.slug, g.title]));
+        const rows: GameRecordRow[] = mine.map((r) => ({
+          ...r,
+          gameTitle: titleBySlug.get(r.gameSlug) ?? r.gameSlug,
+        }));
+        if (!cancelled) setRecords(rows);
       } catch {
-        if (!cancelled) {
-          setStats({ savedGames: 0, totalRuns: 0, totalKills: 0, bestWave: 0 });
-        }
+        if (!cancelled) setRecords([]);
       } finally {
-        if (!cancelled) {
-          setStatsLoading(false);
-        }
+        if (!cancelled) setLoadingRecords(false);
       }
     }
-    loadPersonalStats();
+    void load();
     return () => {
       cancelled = true;
     };
   }, []);
 
-  async function handleLogout() {
-    setLogoutError(null);
-
-    try {
-      const accessToken = localStorage.getItem("accessToken");
-      if (accessToken) {
-        const result = await graphqlFetch(
-          { query: "mutation Logout { logout }" },
-          { withAuth: true }
-        );
-        if (!result.ok && result.errors?.length) {
-          setLogoutError(
-            t("Unable to contact server during logout.", "Echec deconnexion serveur.")
-          );
-        }
-      }
-    } catch {
-      setLogoutError(t("Unable to contact server during logout.", "Echec deconnexion serveur."));
-    } finally {
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
-      localStorage.removeItem("user");
-      router.replace("/login?loggedOut=1");
-    }
-  }
-
   if (user === null) {
     return (
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-8 sm:py-10">
+      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-6 py-8">
         <p className="text-muted-foreground" role="status">
-          {t("Checking session...", "Verification de la session...")}
+          {t('Checking session...', 'Verification de la session...')}
         </p>
       </main>
     );
@@ -139,75 +83,107 @@ export default function ProtectedPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-6 py-8 sm:py-10">
-      <Card>
+      <Card className="border-sky-300/20 bg-slate-950/60">
         <CardHeader>
-          <CardTitle>{t("Protected area", "Espace protege")}</CardTitle>
+          <CardTitle className="space-etched text-2xl">
+            {user.username ?? t('Player', 'Joueur')}
+          </CardTitle>
           <CardDescription>
-            {t("You are signed in.", "Vous etes connecte.")}
+            {t('Public profile — visible to other players.', 'Profil public — visible par les autres joueurs.')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <p className="text-lg">
-            {t("Welcome", "Bienvenue")}{" "}
-            <span className="font-semibold text-primary">
-              {user.username ?? user.email ?? "player"}
-            </span>
-            .
-          </p>
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-lg border border-border/70 p-3">
-              <p className="text-xs uppercase text-muted-foreground">{t("Username", "Pseudo")}</p>
-              <p className="mt-1 font-medium">{user.username ?? "-"}</p>
+            <div className="rounded-lg border border-sky-300/15 bg-slate-900/40 p-3">
+              <p className="text-xs uppercase text-muted-foreground">{t('Username', 'Pseudo')}</p>
+              <p className="mt-1 font-medium">{user.username ?? '—'}</p>
             </div>
-            <div className="rounded-lg border border-border/70 p-3">
-              <p className="text-xs uppercase text-muted-foreground">{t("Email", "Email")}</p>
-              <p className="mt-1 font-medium">{user.email ?? "-"}</p>
+            <div className="rounded-lg border border-sky-300/15 bg-slate-900/40 p-3">
+              <p className="text-xs uppercase text-muted-foreground">{t('Email', 'Email')}</p>
+              <p className="mt-1 font-medium">{user.email ?? '—'}</p>
             </div>
           </div>
-          <div className="rounded-lg border border-border/70 p-4">
-            <h2 className="text-sm font-semibold">{t("Personal stats", "Stats personnelles")}</h2>
-            {statsLoading ? (
-              <p className="mt-2 text-sm text-muted-foreground">
-                {t("Loading personal stats...", "Chargement des stats personnelles...")}
-              </p>
-            ) : (
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <div>
-                  <p className="text-xs uppercase text-muted-foreground">{t("Saved games", "Jeux sauvegardes")}</p>
-                  <p className="text-lg font-semibold">{stats.savedGames}</p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase text-muted-foreground">{t("Total runs", "Total runs")}</p>
-                  <p className="text-lg font-semibold">{stats.totalRuns}</p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase text-muted-foreground">{t("Total kills", "Kills totaux")}</p>
-                  <p className="text-lg font-semibold">{stats.totalKills}</p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase text-muted-foreground">{t("Best wave", "Meilleure vague")}</p>
-                  <p className="text-lg font-semibold">{stats.bestWave}</p>
-                </div>
-              </div>
-            )}
+          <div className="flex flex-wrap gap-2">
+            <Link href="/settings" className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}>
+              {t('Account settings', 'Parametres du compte')}
+            </Link>
+            <Link href="/catalog" className={cn(buttonVariants({ variant: 'outline', size: 'sm' }))}>
+              {t('Play a game', 'Jouer')}
+            </Link>
           </div>
-          <Separator />
-          <Button
-            type="button"
-            variant="destructive"
-            onClick={handleLogout}
-            aria-label={t("Logout from current session", "Se deconnecter de la session")}
-          >
-            {t("Logout", "Deconnexion")}
-          </Button>
-          {logoutError ? <FeedbackMessage variant="error" message={logoutError} /> : null}
         </CardContent>
-        <CardFooter>
-          <Link href="/" className={cn(buttonVariants({ variant: "link" }), "h-auto p-0")}>
-            {t("Back home", "Retour accueil")}
-          </Link>
-        </CardFooter>
       </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>{t('Records by game', 'Records par jeu')}</CardTitle>
+          <CardDescription>
+            {t(
+              'Your best score and fastest time per title.',
+              'Ton meilleur score et ton meilleur temps par jeu.'
+            )}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loadingRecords ? (
+            <p className="text-sm text-muted-foreground">{t('Loading...', 'Chargement...')}</p>
+          ) : records.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              {t('No runs saved yet. Finish a game to appear here.', 'Aucune run enregistree. Termine une partie pour apparaitre ici.')}
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-3">
+              {records.map((row) => (
+                <li
+                  key={row.gameSlug}
+                  className="rounded-lg border border-sky-300/15 bg-slate-900/35 p-4"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="font-medium text-sky-100/90">{row.gameTitle}</p>
+                      <p className="text-xs text-muted-foreground">{row.gameSlug}</p>
+                    </div>
+                    <Link
+                      href={`/play/${row.gameSlug}`}
+                      className={cn(buttonVariants({ size: 'sm' }), 'shrink-0')}
+                    >
+                      {t('Play', 'Jouer')}
+                    </Link>
+                  </div>
+                  <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+                    <p>
+                      {t('Best score', 'Meilleur score')}:{' '}
+                      <span className="font-semibold text-zinc-100">{row.bestScore}</span>
+                      {row.rankScore ? (
+                        <span className="text-muted-foreground"> · Top {row.rankScore}</span>
+                      ) : null}
+                      <span className="block text-xs text-muted-foreground">
+                        {formatRunDuration(row.bestScoreDuration)}
+                      </span>
+                    </p>
+                    <p>
+                      {t('Best time', 'Meilleur temps')}:{' '}
+                      <span className="font-semibold text-zinc-100">
+                        {formatRunDuration(row.bestTimeDuration)}
+                      </span>
+                      {row.rankTime ? (
+                        <span className="text-muted-foreground"> · Top {row.rankTime}</span>
+                      ) : null}
+                      <span className="block text-xs text-muted-foreground">
+                        {t('Score', 'Score')}: {row.bestTimeScore}
+                      </span>
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+
+      <Link href="/" className={cn(buttonVariants({ variant: 'link' }), 'h-auto p-0')}>
+        {t('Back home', 'Retour accueil')}
+      </Link>
     </main>
   );
 }

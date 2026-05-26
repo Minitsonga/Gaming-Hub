@@ -4,7 +4,10 @@ import { buildLaunchUrl, isLaunchableStatus } from "./game-launch";
 
 describe("game launch utilities", () => {
   it("builds launch url from base and slug", () => {
-    assert.equal(buildLaunchUrl("https://games.example.com", "rogue-run"), "https://games.example.com/rogue-run");
+    assert.equal(
+      buildLaunchUrl("https://games.example.com", "rogue-run"),
+      "https://games.example.com/rogue-run/index.html"
+    );
   });
 
   it("recognizes launchable status", () => {
